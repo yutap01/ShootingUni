@@ -16,6 +16,7 @@ public class PlayerMove : MonoBehaviour {
 		}
 	}
 
+
 	[SerializeField]
 	private string characterName = "BoxUnityChan";	//キャラクタとなるGameObject名
 	public string CharacterName{
