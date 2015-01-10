@@ -82,14 +82,14 @@ public class PlayerMove : MonoBehaviour {
 			this.characterObj.transform.localPosition = characterPosition;
 		}
 
-		//スクロール移動
-		//Apply Root Motionにチェックがあると進まなくなる
-		//ｙを０にしたらいかん
-		
-		Vector3 position = this.transform.position;
-		position.z += Time.deltaTime * this.Speed;
-		this.transform.position = position;
-		
+
+		//スクロール用移動(チャンクが移動する方式に変更しなければならない)
+		//Vector3 position = this.transform.position;
+		//position.z += Time.deltaTime * this.Speed;
+		//this.transform.position = position;
+
+
+		//キャラクター前後移動
 		float vz = Input.GetAxis("Vertical") * this.Speed * Time.deltaTime;
 		if(vz !=0.0f){
 			Vector3 characterPosition = this.characterObj.transform.localPosition;
