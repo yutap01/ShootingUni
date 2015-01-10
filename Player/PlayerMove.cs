@@ -58,20 +58,23 @@ public class PlayerMove : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-
 		//つまづき判定
 		if (this.isStep()) {
-			float force = 10.0f + this.Speed;
-			this.rigidbody.AddForce(0, force, 0);
+			float force = 40.0f;
+			this.rigidbody.AddForce(0, force, -force);
+			return;
 		}
 
 		//ジャンプ処理
 		//なぜかAddForceだとうまくいかない FixedUpdate内で力を消してしまう様子
 		if(Input.GetButtonDown("Jump") && this.isGrounded("Ground",0.3f)){
+			/*
 			this.rigidbody.velocity = new Vector3(
 				this.rigidbody.velocity.x,
 				this.JumpPower,
-				this.rigidbody.velocity.z);
+				this.rigidbody.velocity.z);*/
+			this.rigidbody.AddForce(0, 400, 0);
+			return;
 		}
 
 		//左右移動(Characterに対して行う)
@@ -82,20 +85,15 @@ public class PlayerMove : MonoBehaviour {
 			this.characterObj.transform.localPosition = characterPosition;
 		}
 
-
-		//スクロール用移動(チャンクが移動する方式に変更しなければならない)
-		//Vector3 position = this.transform.position;
-		//position.z += Time.deltaTime * this.Speed;
-		//this.transform.position = position;
-
-
 		//キャラクター前後移動
-		float vz = Input.GetAxis("Vertical") * this.Speed * Time.deltaTime;
+		float vz = Input.GetAxis("Vertical") * this.Footwork * Time.deltaTime;
 		if(vz !=0.0f){
 			Vector3 characterPosition = this.characterObj.transform.localPosition;
 			characterPosition.z += vz;
 			this.characterObj.transform.localPosition = characterPosition;
 		}
+
+
 	}
 
 	void FixedUpdate(){
@@ -113,18 +111,18 @@ public class PlayerMove : MonoBehaviour {
 
 	//タグ名tagNameのオブジェクトに接地しているか否か(検知する距離をrayDepthで指定)
 	private bool isGrounded(string tagName,float rayDepth){
-        //テスト用
-        return true;
+		//テスト用
+		//return true;
+
+
+		int mask = 1 << LayerMask.NameToLayer(tagName); // Groundレイヤーにのみを対象
 
 		RaycastHit hit;
-		//レイがオブジェクトに当たったか判定
-		if (Physics.Raycast (this.transform.position, Vector3.down, out hit, rayDepth)){
-			//オブジェクトのタグがgroundか判定
-			return (hit.collider.tag == tagName);
-		}else{
-			//レイがオブジェクトに当たっていない
-			return false;				
-		}
+		Transform transform = this.characterObj.transform;
+
+		Vector3 layOffset = new Vector3(0, 0.2f, 0);
+		Vector3 layOrigin = transform.position + layOffset;
+		return Physics.SphereCast (layOrigin,1f, Vector3.down, out hit, rayDepth,mask); 
 	}
 
 	//段差につまづいているか
@@ -132,8 +130,11 @@ public class PlayerMove : MonoBehaviour {
 		int mask = 1 << LayerMask.NameToLayer("Ground"); // Groundレイヤーにのみを対象
 		RaycastHit hit;
 		Transform transform = this.characterObj.transform;
-		float distance = 1.5f + this.Speed * 0.1f;
-		return (Physics.SphereCast(transform.position, 1f, Vector3.forward, out hit, distance, mask));
+
+		Vector3 layOffset = new Vector3(0, 1.0f, 0);
+		Vector3 layOrigin = transform.position + layOffset;
+		float distance = 1.5f + this.Speed*2;
+		return (Physics.SphereCast(layOrigin, 0.5f, Vector3.forward, out hit, distance, mask));
 }
 
 
