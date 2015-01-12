@@ -2,9 +2,34 @@
 using System.Collections;
 
 public class PlayerMove : MonoBehaviour {
+
+	//変更値を受け入れるハンドラデリゲート型
+	public delegate void PlayerValueChangeHandler(PlayerMove playerMove);
+
+	//スクロール速度の変更イベント
+	public event PlayerValueChangeHandler ScrollSpeedChanged;
+
 	private GameObject characterObj;	//キャラクター
 
-	public float Speed = 0.0f;
+	[SerializeField]
+	private float scrollSpeed = 0.0f;
+	public float ScrollSpeed {
+		get {
+			return scrollSpeed;
+		}
+		set {
+			if(value == this.scrollSpeed){
+				return;
+			}
+			scrollSpeed = value;
+			//スクロールスピード変更イベントを発行する
+			if (this.ScrollSpeedChanged != null) {
+				this.ScrollSpeedChanged(this);
+			}
+		}
+	}
+
+
 	public float Footwork = 0.0f;	//左右移動の速度
 	public float JumpPower = 0.0f;	//ジャンプ力
 
@@ -34,16 +59,6 @@ public class PlayerMove : MonoBehaviour {
 		this.characterObj = Utility.GetChildFromResource(this.gameObject,this.CharacterName);	//キャラクターを設定 Playerの子にする
 		this.characterAnimator = this.characterObj.GetComponent<Animator>();	//キャラクターに設定されているアニメーターを取得
 
-
-		//キャラクターからFeetゲームオブジェクトを取得する
-		//Feetゲームオブジェクトはキャラクターの子オブジェクトである
-		//GameObject feet = this.characterObj.transform.FindChild("Feet").gameObject;
-		//feetからFeetCollisionスクリプトを得る
-		//FeetCollision feetCollision = feet.GetComponent<FeetCollision>();
-		
-		//イベントへの登録
-		//feetCollision.CollisionStepEvent += new FeetCollision.FeetCollisionHandler(this.hittedByStep);
-		//feetCollision.CollisionKicableEnvent += new FeetCollision.FeetCollisionHandler(this.hittedByKicable);
 
 
 		//武器を取得
@@ -93,6 +108,15 @@ public class PlayerMove : MonoBehaviour {
 			this.characterObj.transform.localPosition = characterPosition;
 		}
 
+		//スクロール速度の変化をテスト
+		if (Input.GetButtonDown("Fire1")) {
+			this.ScrollSpeed += 0.05f;
+		}
+		if (Input.GetButtonDown("Fire2")) {
+			this.scrollSpeed -= 0.05f;
+		}
+
+
 
 	}
 
@@ -112,7 +136,7 @@ public class PlayerMove : MonoBehaviour {
 	//タグ名tagNameのオブジェクトに接地しているか否か(検知する距離をrayDepthで指定)
 	private bool isGrounded(string tagName,float rayDepth){
 		//テスト用
-		//return true;
+		return true;
 
 
 		int mask = 1 << LayerMask.NameToLayer(tagName); // Groundレイヤーにのみを対象
@@ -127,13 +151,14 @@ public class PlayerMove : MonoBehaviour {
 
 	//段差につまづいているか
 	private bool isStep() {
+
 		int mask = 1 << LayerMask.NameToLayer("Ground"); // Groundレイヤーにのみを対象
 		RaycastHit hit;
 		Transform transform = this.characterObj.transform;
 
 		Vector3 layOffset = new Vector3(0, 1.0f, 0);
 		Vector3 layOrigin = transform.position + layOffset;
-		float distance = 1.5f + this.Speed*2;
+		float distance = 1.5f + this.ScrollSpeed*2;
 		return (Physics.SphereCast(layOrigin, 0.5f, Vector3.forward, out hit, distance, mask));
 }
 

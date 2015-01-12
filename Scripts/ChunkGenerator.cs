@@ -8,8 +8,13 @@ public class ChunkGenerator : MonoBehaviour {
 	//private TerrainGenerator terrainGenerator;
 	//private TreeGenerator treeGenerator;
 
-	private float generateCycle = 0;
-	private const int startChunks = 5;	//スタート時点で生成するチャンク数
+	//チャンクの移動速度(m/flame)チャンク生成サイクルに影響
+	private float scrollSpeed = 0;
+	//チャンクの生成位置
+	private Vector3 createPosition = new Vector3(0,0,0);
+
+	[SerializeField]
+	private int startChunks = 0;	//スタート時点で生成するチャンク数
 	
 	//ブロック作成Y座標
 	private int GenerateY = 1;	//ブロックを作成するY位置
@@ -27,29 +32,59 @@ public class ChunkGenerator : MonoBehaviour {
 	void Awake() {
 		map = GetComponent<Map>();
 
-		if (this.generateCycle == 0) {
+		//if (this.generateCycle == 0) {
 			GameObject objPlayer = GameObject.FindGameObjectWithTag(TagName.Player);
-			float scrollSpeed = objPlayer.GetComponent<PlayerMove>().Speed;
-			this.generateCycle = Chunk.SIZE_Z / scrollSpeed;
-		}
+			PlayerMove playerMove = objPlayer.GetComponent<PlayerMove>();
+			//チャンク生成サイクルの決定
+			this.scrollSpeed = playerMove.ScrollSpeed;
+			//スクロール速度の変更イベントへ登録
+			playerMove.ScrollSpeedChanged += new PlayerMove.PlayerValueChangeHandler(this.scrollSpeedChanged);			
+
+		//}
 		//terrainGenerator = new TerrainGenerator(map);
 		//treeGenerator = new TreeGenerator(map);
 	}
 
+
 	void Start() {
 
 		//スタート地点
+		Vector3 position = this.createPosition;
 		for (int i = 0; i < startChunks; i++) {
-			this.createChunk(new Vector3(0, 0, i * Chunk.SIZE_Z));
+			this.createChunk(position);
+			position.z += Chunk.SIZE_Z;
 		}
+		this.createPosition = position;
+		this.createPosition.z -= Chunk.SIZE_Z;	//ループ内で一回余計に足している分を補正
 	}
+
 
 	//生成したチャンクの数
 	private static int chunkCount = 0;
+	private float chunkOffset = 0;	//最後に生成したチャンクが生成箇所から移動した距離
 	void Update() {
-		Vector3 position = new Vector3(0, 0, (startChunks-1)*Chunk.SIZE_Z);
-		if (Time.frameCount % this.generateCycle == 0) {
+		Vector3 position = this.createPosition;
+		chunkOffset += this.scrollSpeed;
+		if (chunkOffset > Chunk.SIZE_Z) {
+			//チャンク生成場所を補正する(移動しすぎた分、生成位置を補正する)
+			//この方式だと速度を変える度に生成箇所が0に近づいていってしまう・・。
+			//遠くなっていく方がマシなのだが・・・。
+			//しかもこの方式は速くなっていく分には良いが遅くなっていく場合には不適合
+			this.createPosition.z -= (this.chunkOffset - Chunk.SIZE_Z);
 			this.createChunk(position);
+
+			//一回余計に作って生成箇所を後ろ側にしていく？？
+			//速度を変える度にチャンクの保有数が増えてしまう。
+			//手前に戻り過ぎたら一回分余計に作ってプラスする処理を入れる必要がある
+			//最初の生成ポイントからチャンク一つ分手前の生成ポイント
+			float z = (this.startChunks - 2) * Chunk.SIZE_Z;
+			if (this.createPosition.z < z) {	//元々の生成ポイントの一つ手前よりも現在の生成ポイントが近かったら
+				//生成ポイントを1チャンク分後ろへ下げてすぐ生成する
+				this.createPosition.z += Chunk.SIZE_Z;
+				this.createChunk(this.createPosition);
+			}
+
+			this.chunkOffset = 0;
 		}
 	}
 
@@ -104,7 +139,9 @@ public class ChunkGenerator : MonoBehaviour {
 	//段差の取得
 	private int planeCounter = 0;	//段差無しが連続した回数
 	private const int limitPlane = 16;	//段差間の最低平面数
-private Step_enum getStep() {
+	private Step_enum getStep() {
+
+
 
 		//前回段差であれば必ず非段差を返す
 		if (planeCounter < limitPlane) {
@@ -125,6 +162,11 @@ private Step_enum getStep() {
 
 		planeCounter++;
 		return Step_enum.Step_plane;	 
+	}
+
+	//[イベント]スクロール速度の変更があった場合
+	private void scrollSpeedChanged(PlayerMove playerMove) {
+		this.scrollSpeed = playerMove.ScrollSpeed;
 	}
 
 }	//end of class
