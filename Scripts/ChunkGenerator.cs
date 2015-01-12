@@ -44,7 +44,7 @@ public class ChunkGenerator : MonoBehaviour {
 		//スタート地点
 		Vector3 position = this.createPosition;
 		for (int i = 0; i < startChunks; i++) {
-			this.createChunk(position);
+			this.createChunk(position,this.getBlockName());
 			position.z += Chunk.SIZE_Z;
 		}
 		this.createPosition = position;
@@ -59,12 +59,15 @@ public class ChunkGenerator : MonoBehaviour {
 		Vector3 position = this.createPosition;
 		chunkOffset += this.scrollSpeed;
 		if (chunkOffset > Chunk.SIZE_Z) {
+			//生成するブロックの名前を取得する
+			string blockName = getBlockName();
+
 			//チャンク生成場所を補正する(移動しすぎた分、生成位置を補正する)
 			//この方式だと速度を変える度に生成箇所が0に近づいていってしまう・・。
 			//遠くなっていく方がマシなのだが・・・。
 			//しかもこの方式は速くなっていく分には良いが遅くなっていく場合には不適合
 			this.createPosition.z -= (this.chunkOffset - Chunk.SIZE_Z);
-			this.createChunk(position);
+			this.createChunk(position,blockName);
 
 			//一回余計に作って生成箇所を後ろ側にしていく？？
 			//速度を変える度にチャンクの保有数が増えてしまう。
@@ -74,7 +77,7 @@ public class ChunkGenerator : MonoBehaviour {
 			if (this.createPosition.z < z) {	//元々の生成ポイントの一つ手前よりも現在の生成ポイントが近かったら
 				//生成ポイントを1チャンク分後ろへ下げてすぐ生成する
 				this.createPosition.z += Chunk.SIZE_Z;
-				this.createChunk(this.createPosition);
+				this.createChunk(this.createPosition,blockName);
 			}
 
 			this.chunkOffset = 0;
@@ -92,9 +95,9 @@ public class ChunkGenerator : MonoBehaviour {
 	//7:チャンクは自身のupdate内で(dirtyであれば)自動的にビルドされる
 
 	//チャンクの生成
-	private void createChunk(Vector3 position) {
+	private void createChunk(Vector3 position,string blockName) {
 		BlockSet bs = map.GetBlockSet();
-		Block b = bs.GetBlock("Grass");
+		Block b = bs.GetBlock(blockName);
 		BlockData bd = new BlockData(b);
 		ChunkData cd = new ChunkData(this.map,new Vector3i(0,0,0));	//0,0,0固定
 
@@ -130,7 +133,7 @@ public class ChunkGenerator : MonoBehaviour {
 
 	//段差の取得
 	private int planeCounter = 0;	//段差無しが連続した回数
-	private const int limitPlane = 16;	//段差間の最低平面数
+	private const int limitPlane = 20;	//段差間の最低平面数
 
 	//段の上がり下がり数を返す
 	//0 平面 1:1段上がる -n:n段下がる
@@ -157,6 +160,15 @@ public class ChunkGenerator : MonoBehaviour {
 
 		planeCounter++;
 		return 0;	 
+	}
+
+	//チャンク全体に適用するブロック名を通知する
+	private string getBlockName() {
+		//実際は距離との関係で求める
+
+		BlockSet blockSet = this.map.GetBlockSet();
+		int rand = Random.Range(0, blockSet.GetCount());
+		return blockSet.GetBlock(rand).GetName();
 	}
 
 	//[イベント]スクロール速度の変更があった場合
