@@ -22,13 +22,6 @@ public class ChunkGenerator : MonoBehaviour {
 	private const int MIN_Y = 1;
 
 
-	//段差
-	private enum Step_enum {
-		Step_down = -1,
-		Step_plane = 0,
-		Step_up = 1
-	};
-
 	void Awake() {
 		map = GetComponent<Map>();
 
@@ -110,23 +103,22 @@ public class ChunkGenerator : MonoBehaviour {
 		for (int z = 0; z < Chunk.SIZE_Z; z++) {
 			
 			//横一列毎に段差の有無を判定する
-			Step_enum step = getStep();	//段差を取得
+			int step = getStep();	//段差を取得
 
 			int changeX = -1;	//横位置列の中で高さが変化する位置(-1は無効値)
-			if (step != Step_enum.Step_plane) {	//段差があるなら
+			if (step != 0) {	//段差があるなら
 				//横位置列で高さが変化する位置を決める
 				changeX = Random.Range(0, Chunk.SIZE_X - 1);
 			}
 
 			for (int x = 0; x < Chunk.SIZE_X; x++) {
 				if (x == changeX) {	//段差が変化する位置になったら
-					GenerateY += (int)step;	//段差を変化させる
+					GenerateY += step;	//段を変化させる
 				}
 				
 				cd.SetBlock(bd, x, GenerateY, z);
 			}
 		}
-		cd.SetBlock(bd, 8, 2, 8);
 
 
 		Chunk c = cd.GetChunkInstance();
@@ -139,29 +131,32 @@ public class ChunkGenerator : MonoBehaviour {
 	//段差の取得
 	private int planeCounter = 0;	//段差無しが連続した回数
 	private const int limitPlane = 16;	//段差間の最低平面数
-	private Step_enum getStep() {
 
-
+	//段の上がり下がり数を返す
+	//0 平面 1:1段上がる -n:n段下がる
+	private int getStep() {
 
 		//前回段差であれば必ず非段差を返す
 		if (planeCounter < limitPlane) {
 			planeCounter++;
-			return Step_enum.Step_plane;
+			return 0;	//平面
 		}
 
 		float rate = Random.Range(0.0f, 1.0f);
 		
-		if (rate > 0.8 && GenerateY < MAX_Y) {	//1段上がる
+		if (rate > 0.5 && GenerateY < MAX_Y) {	//1段上がる
 			planeCounter = 0;
-			return Step_enum.Step_up;
+			return 1;	//1段上がる
 		}
 		if (rate < 0.1 && GenerateY > MIN_Y) {	//1段下がる
 			planeCounter = 0;
-			return Step_enum.Step_down;
+
+			//Random前に負符号があることに注意
+			return -Random.Range(1,GenerateY-MIN_Y+1);	//randomでmax値は含まれない
 		}
 
 		planeCounter++;
-		return Step_enum.Step_plane;	 
+		return 0;	 
 	}
 
 	//[イベント]スクロール速度の変更があった場合
