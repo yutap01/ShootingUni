@@ -19,7 +19,7 @@ public class CameraMove : MonoBehaviour {
 	//プレイヤーのy座標でカメラのz座標が決まる
 	//yが高いほどzはプレイヤーに近づく
 	void Update () {
-		this.transform.localPosition = this.cameraPosition();
+		//this.transform.localPosition = this.cameraPosition();
 		this.transform.LookAt(this.transform.parent);	//ターゲットの方を向く
 	}
 

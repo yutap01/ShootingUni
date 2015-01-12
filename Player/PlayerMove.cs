@@ -57,7 +57,14 @@ public class PlayerMove : MonoBehaviour {
 	void Awake(){
 		//キャラクターを取得
 		this.characterObj = Utility.GetChildFromResource(this.gameObject,this.CharacterName);	//キャラクターを設定 Playerの子にする
-		this.characterAnimator = this.characterObj.GetComponent<Animator>();	//キャラクターに設定されているアニメーターを取得
+		
+		//Blob Shadow Projectorを得る
+		GameObject shadow = Utility.GetChildFromResource(this.characterObj, "Blob Shadow Projector");
+		shadow.transform.localPosition = new Vector3(0, 2,0);	//何か基準となる値はないか？？
+		shadow.transform.rotation = Quaternion.Euler(90, 0, 0);
+ 
+		
+			this.characterAnimator = this.characterObj.GetComponent<Animator>();	//キャラクターに設定されているアニメーターを取得
 
 
 

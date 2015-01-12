@@ -164,6 +164,9 @@ public class ChunkGenerator : MonoBehaviour {
 
 	//チャンク全体に適用するブロック名を通知する
 	private string getBlockName() {
+		//テスト用
+		return "Grass";
+
 		//実際は距離との関係で求める
 
 		BlockSet blockSet = this.map.GetBlockSet();
