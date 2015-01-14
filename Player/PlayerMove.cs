@@ -29,9 +29,16 @@ public class PlayerMove : MonoBehaviour {
 		}
 	}
 
+	[SerializeField]
+	private float footwork = 0.0f;	//左右移動の速度
+	
+	[SerializeField]
+	private float jumpPower = 0.0f;	//ジャンプ力
 
-	public float Footwork = 0.0f;	//左右移動の速度
-	public float JumpPower = 0.0f;	//ジャンプ力
+	[SerializeField]
+	private float gravity = 0.0f;	//重力の代わりとなる下向きの力
+	[SerializeField]
+	private float endureGravity = 0.0f;	//ジャンプボタンを押し続けることで重力に抗う力
 
 	[SerializeField]
 	private string weaponName = "PlayerWeapon";	//デフォルト
@@ -80,6 +87,9 @@ public class PlayerMove : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
+
+		//TODO 即値の廃止
+
 		//つまづき判定
 		if (this.isStep()) {
 			float force = 40.0f;
@@ -87,20 +97,28 @@ public class PlayerMove : MonoBehaviour {
 			return;
 		}
 
+
 		//ジャンプ処理
-		//なぜかAddForceだとうまくいかない FixedUpdate内で力を消してしまう様子
 		if(Input.GetButtonDown("Jump") && this.isGrounded("Ground",0.3f)){
-			/*
-			this.rigidbody.velocity = new Vector3(
-				this.rigidbody.velocity.x,
-				this.JumpPower,
-				this.rigidbody.velocity.z);*/
 			this.rigidbody.AddForce(0, 400, 0);
 			return;
 		}
 
+		//空中ならば下向きの力を受ける
+		if (!this.isGrounded("Ground", 0.1f)) {
+			//チャンプボタンを押しているときは下向きの力が減少する
+			//減少値はキャラクター固有とする
+			float g = this.gravity;
+			if (Input.GetButton("Jump")) {
+				g -= this.endureGravity;
+			}
+
+			this.rigidbody.AddForce(0, -g, 0);
+		}
+
+
 		//左右移動(Characterに対して行う)
-		float vx = Input.GetAxis("Horizontal") * this.Footwork * Time.deltaTime;
+		float vx = Input.GetAxis("Horizontal") * this.footwork * Time.deltaTime;
 		if(vx !=0.0f){
 			Vector3 characterPosition = this.characterObj.transform.localPosition;
 			characterPosition.x += vx;
@@ -108,7 +126,7 @@ public class PlayerMove : MonoBehaviour {
 		}
 
 		//キャラクター前後移動
-		float vz = Input.GetAxis("Vertical") * this.Footwork * Time.deltaTime;
+		float vz = Input.GetAxis("Vertical") * this.footwork * Time.deltaTime;
 		if(vz !=0.0f){
 			Vector3 characterPosition = this.characterObj.transform.localPosition;
 			characterPosition.z += vz;
@@ -143,7 +161,7 @@ public class PlayerMove : MonoBehaviour {
 	//タグ名tagNameのオブジェクトに接地しているか否か(検知する距離をrayDepthで指定)
 	private bool isGrounded(string tagName,float rayDepth){
 		//テスト用
-		return true;
+		//return true;
 
 
 		int mask = 1 << LayerMask.NameToLayer(tagName); // Groundレイヤーにのみを対象
