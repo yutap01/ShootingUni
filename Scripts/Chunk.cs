@@ -14,15 +14,20 @@ public class Chunk : MonoBehaviour {
 	//追加
 	private const float limitDistance = Chunk.SIZE_Z*2;	//プレイヤーよりlimitDistaceメートル後方(-z)へ移動した時点で消去される
 	private static float scrollSpeed = 0;	//スクロール量
+	public static float ScrollSpeed {
+		set {
+			Chunk.scrollSpeed = value;
+		}
+	}
 
 	//ChunkGeneratorから付与される値
-	private uint cycleNumber = 0;	//ChunkGeneratorで作成された時のサイクル番号
-	public uint CycleNumber {
+	private uint levelNumber = 0;	//ChunkGeneratorで作成された時のサイクル番号
+	public uint LevelNumber {
 		get {
-			return this.cycleNumber;
+			return this.levelNumber;
 		}
 		set {
-			this.cycleNumber = value;
+			this.levelNumber = value;
 		}
 	}
 	private int chunkNumber = 0;	//あるサイクルで、何番目のチャンクであるか。
@@ -70,19 +75,11 @@ public class Chunk : MonoBehaviour {
 		chunk.blockSet = map.GetBlockSet();
 		chunk.chunkData = chunkData;
 
-		//スクロール速度について
-		if (Chunk.scrollSpeed == 0) {
-			GameObject objPlayer = GameObject.FindGameObjectWithTag(TagName.Player);
-			PlayerMove playerMove = objPlayer.GetComponent<PlayerMove>();
-			Chunk.scrollSpeed = playerMove.ScrollSpeed;	//初期化
-			//イベントへ登録
-			playerMove.ScrollSpeedChanged += new PlayerMove.PlayerValueChangeHandler(Chunk.scrollSpeedChanged);
-		}
-
 		return chunk;
 	}
 	
 	//追加
+	/*
 	public static Chunk CreateChunk(float z, Map map, ChunkData chunkData) {
 		GameObject go = new GameObject("(" + z + ")  " + map.transform.childCount);
 		
@@ -100,6 +97,7 @@ public class Chunk : MonoBehaviour {
 
 		return chunk;
 	}
+	 */
 
 	
 	void Update() {
@@ -198,10 +196,11 @@ public class Chunk : MonoBehaviour {
 
 
 	//[イベント]スクロール速度の変更があった場合
+	/*
 	private static void scrollSpeedChanged(PlayerMove playerMove) {
 		Chunk.scrollSpeed = playerMove.ScrollSpeed;
 	}
-
+	*/
 
 
 	//ブロック座標として、正しい範囲各要素が(0-15)を指定されているか否か
