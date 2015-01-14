@@ -16,7 +16,7 @@ public class Level {
 	#region "定数"
 
 	//レベル当たりの距離
-	public const int FullDistance = 176;//3200;	//単位メートル
+	public const int FullDistance = 3200;	//単位メートル
 
 	//レベル当たりのチャンク数
 	public const int ChunkCountByCycle = Level.FullDistance / Chunk.SIZE_Z;	//小数点以下は無視でよい

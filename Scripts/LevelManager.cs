@@ -29,8 +29,15 @@ public class LevelManager : MonoBehaviour {
 		}
 		set {
 			this.levelNumber = value;
-			this.currentLevel = new Level(this.levelNumber,this.map,"Grass");
+			this.currentLevel = new Level(this.levelNumber,this.map,this.blockName(levelNumber));
 		}
+	}
+
+	//レベル番号に応じた地面ブロック名を取得
+	private string blockName(uint levelNumer) {
+		BlockSet blockSet = this.map.GetBlockSet();
+		int idx = (int)levelNumber % blockSet.GetCount();
+		return blockSet.GetBlock(idx).GetName();
 	}
 
 	//現在のレベル
@@ -63,7 +70,7 @@ public class LevelManager : MonoBehaviour {
 
 	void Start() {
 		//スタート地点
-		for (int i = 0; i < startChunks; i++) {
+		for (int i = 0; i < this.startChunks; i++) {
 			Chunk chunk = this.currentLevel.NextChunk();
 			if (chunk == null) {
 				this.levelFinished();
