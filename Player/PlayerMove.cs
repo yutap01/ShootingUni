@@ -82,6 +82,12 @@ public class PlayerMove : MonoBehaviour {
 	private PlayerInput playerInput = null;
 	
 	void Awake(){
+		//unity全般の設定
+		//速度最適化
+		QualitySettings.vSyncCount = 0;
+		Application.targetFrameRate = 60;
+		
+
 		//キャラクターを取得
 		this.characterObj = Utility.GetChildFromResource(this.gameObject,this.CharacterName);	//キャラクターを設定 Playerの子にする
 		

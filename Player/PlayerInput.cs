@@ -19,8 +19,8 @@ public class PlayerInput : MonoBehaviour {
 	public float HorizontalQuatanion {
 		get {
 	#if !UNITY_EDITOR && UNITY_IPHONE
-			//とりあえず左にホームボタンがある横持ち状態を前提
-			return Mathf.Clamp(Input.gyro.gravity.y-this.defaultQuatanion.y,-1.0f,1.0f);
+			//とりあえず右にホームボタンがある横持ち状態を前提
+			return Mathf.Clamp(Input.gyro.gravity.x-this.defaultQuatanion.y,-1.0f,1.0f);
 	#else
 			return 0;
 	#endif
@@ -33,8 +33,8 @@ public class PlayerInput : MonoBehaviour {
 	public float VirticalQuatanion {
 		get {
 #if !UNITY_EDITOR && UNITY_IPHONE
-			//とりあえず左にホームボタンがある横持ち状態を前提
-			return Mathf.Clamp(Input.gyro.gravity.x-defaultQuatanion.x,-1.0f,1.0f);
+			//とりあえず右にホームボタンがある横持ち状態を前提
+			return Mathf.Clamp(Input.gyro.gravity.y-defaultQuatanion.x,-1.0f,1.0f);
 #else
 			return 0;
 #endif
