@@ -28,7 +28,7 @@ public class PlayerMove : MonoBehaviour {
 	
 	private GameObject characterObj;	//キャラクター
 
-	
+
 	[SerializeField]
 	private float scrollSpeed = 0.0f;
 	public float ScrollSpeed {
@@ -76,6 +76,10 @@ public class PlayerMove : MonoBehaviour {
 
 	private Animator characterAnimator;	//キャラクターに設定されているアニメータ
 
+
+	//入力
+	[SerializeField]
+	private PlayerInput playerInput = null;
 	
 	void Awake(){
 		//キャラクターを取得
@@ -118,30 +122,15 @@ public class PlayerMove : MonoBehaviour {
 			this.inAir();
 		}
 
-		//左右移動
-		float vx = Input.GetAxis("Horizontal") * this.footwork * Time.deltaTime;
-		if(vx != 0.0f){
-			Vector3 characterPosition = this.characterObj.transform.localPosition;
-			characterPosition.x += vx;
-			this.characterObj.transform.localPosition = characterPosition;
-		}
-
-		//前後移動
-		float vz = Input.GetAxis("Vertical") * this.footwork * Time.deltaTime;
-		if(vz !=0.0f){
-			Vector3 characterPosition = this.characterObj.transform.localPosition;
-			characterPosition.z += vz;
-			this.characterObj.transform.localPosition = characterPosition;
+		//移動
+		if (this.playerInput) {
+			Vector3 axis = this.playerInput.Axis;
+			this.characterObj.transform.position += axis * this.footwork * Time.deltaTime;
 		}
 
 
 		//スクロール速度の変化をテスト
-		if (Input.GetButtonDown("Fire1")) {
-			this.ScrollSpeed += 0.05f;
-		}
-		if (Input.GetButtonDown("Fire2")) {
-			this.scrollSpeed -= 0.05f;
-		}
+		this.ScrollSpeed += this.playerInput.ScrollSpeedInput *0.05f;
 	}
 
 
@@ -162,7 +151,7 @@ public class PlayerMove : MonoBehaviour {
 
 	//有効なジャンプ入力が行われたか
 	private bool isJumped() {
-		return Input.GetButtonDown("Jump") && this.isGrounded("Ground", PlayerMove.groundLayY);
+		return this.playerInput.JumpInput && this.isGrounded("Ground", PlayerMove.groundLayY);
 	}
 
 
@@ -203,7 +192,7 @@ public class PlayerMove : MonoBehaviour {
 		//チャンプボタンを押しているときは下向きの力が減少する
 		//減少値はキャラクター固有とする
 		float g = this.gravity;
-		if (Input.GetButton("Jump")) {
+		if (this.playerInput.JumpInput) {
 			g -= this.endureGravity;
 		}
 		this.rigidbody.AddForce(0, -g, 0);

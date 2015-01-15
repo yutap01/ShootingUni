@@ -20,6 +20,7 @@ public class LevelManager : MonoBehaviour {
 	private int startChunks = 0;	//スタート時点で生成するチャンク数
 		
 
+
 	//現在のサイクル番号(最小は0)
 	//サイクル番号を設定するとサイクル距離が自動的にゼロにリセットされる
 	private uint levelNumber = 0;
