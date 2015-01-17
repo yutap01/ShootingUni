@@ -11,6 +11,8 @@ public class Chunk : MonoBehaviour {
 	public const int SIZE_Y = 1 << SIZE_Y_BITS;
 	public const int SIZE_Z = 1 << SIZE_Z_BITS;
 
+
+
 	//追加
 	private const float limitDistance = Chunk.SIZE_Z*2;	//プレイヤーよりlimitDistaceメートル後方(-z)へ移動した時点で消去される
 	private static float scrollSpeed = 0;	//スクロール量
@@ -78,27 +80,6 @@ public class Chunk : MonoBehaviour {
 		return chunk;
 	}
 	
-	//追加
-	/*
-	public static Chunk CreateChunk(float z, Map map, ChunkData chunkData) {
-		GameObject go = new GameObject("(" + z + ")  " + map.transform.childCount);
-		
-		go.transform.parent = map.transform;
-		go.transform.localPosition = new Vector3(0,0,z);
-		go.transform.localRotation = Quaternion.identity;
-		go.transform.localScale = Vector3.one;
-
-		//追加
-		go.layer = LayerName.Ground;
-
-		Chunk chunk = go.AddComponent<Chunk>();
-		chunk.blockSet = map.GetBlockSet();
-		chunk.chunkData = chunkData;
-
-		return chunk;
-	}
-	 */
-
 	
 	void Update() {
 
@@ -113,16 +94,19 @@ public class Chunk : MonoBehaviour {
 		//Apply Root Motionにチェックがあると進まなくなる
 		//ｙを０にしたらいかん
 		//update毎に位置を決めるためdeltatimeは使用しない
+		
 		Vector3 position = this.transform.position;
 		position.z -= Chunk.scrollSpeed;
 		this.transform.position = position;
-
+		
+		
+		
 		/*
 		if(lightDirty) {
 			BuildLighting();
 			lightDirty = false;
-		}
-		 */ 
+		} 
+		*/
 
 		//z座標が-limitDistance未満になったら削除
 		if (this.transform.position.z < -Chunk.limitDistance) {
@@ -175,7 +159,7 @@ public class Chunk : MonoBehaviour {
 		if(!gameObject.active && filter.sharedMesh != null) {
 			gameObject.SetActiveRecursively(true);
 		}
-		 */ 
+		  */
 	}
 	
 	/*
@@ -184,21 +168,15 @@ public class Chunk : MonoBehaviour {
 			ChunkBuilder.BuildChunkLighting(filter.sharedMesh, chunkData);
 		}
 	}
-	 */ 
+	*/  
 	
 	public void SetDirty() {
 		dirty = true;
 	}
 
-	public void SetLightDirty() {
-		//lightDirty = true;
-	}
-
-
-	//[イベント]スクロール速度の変更があった場合
 	/*
-	private static void scrollSpeedChanged(PlayerMove playerMove) {
-		Chunk.scrollSpeed = playerMove.ScrollSpeed;
+	public void SetLightDirty() {
+		lightDirty = true;
 	}
 	*/
 
@@ -284,6 +262,7 @@ public class Chunk : MonoBehaviour {
 		int worldZ = (chunkPosition.z << SIZE_Z_BITS) + localPosition.z;
 		return new Vector3i(worldX, worldY, worldZ);
 	}
-	
+
+
 }
 

@@ -4,49 +4,21 @@ using System.Collections;
 public class PlayerInput : MonoBehaviour {
 
 
-	private Vector3 defaultQuanion = new Vector3(0,0,0);
+	private Vector3 defaultQuatanion = new Vector3(0,0,0);
 
  
 	//現在の角度をデフォルト値とする
 	public void SetDefaultQuatanion(){
 #if !UNITY_EDITOR && UNITY_IPHONE
-		this.defaultQuanion = Input.gyro.gravity;
+		this.defaultQuatanion = Input.gyro.gravity;
 #endif
 	}
-
-	//水平方向に対する傾きを-1 から 1の値として通知する
-	//TODO 縦持ち 横持ち判定 //横方向判定
-	public float HorizontalQuatanion {
-		get {
-	#if !UNITY_EDITOR && UNITY_IPHONE
-			//とりあえず右にホームボタンがある横持ち状態を前提
-			return Mathf.Clamp(Input.gyro.gravity.x-this.defaultQuatanion.y,-1.0f,1.0f);
-	#else
-			return 0;
-	#endif
-		}
-	}
-
-
-	//垂直方向
-	//TODO 縦持ち 横持ち判定 //横方向判定
-	public float VirticalQuatanion {
-		get {
-#if !UNITY_EDITOR && UNITY_IPHONE
-			//とりあえず右にホームボタンがある横持ち状態を前提
-			return Mathf.Clamp(Input.gyro.gravity.y-defaultQuatanion.x,-1.0f,1.0f);
-#else
-			return 0;
-#endif
-		}
-	}
-
 
 	//入力値を水平方向に対する値として通知
 	public float Horizontal{
 		get {
 #if !UNITY_EDITOR && UNITY_IPHONE
-			return this.HorziontalQuatanion;
+			return this.RotationY;
 #else
 			return Input.GetAxis(InputName.Horizontal);
 #endif
@@ -58,7 +30,7 @@ public class PlayerInput : MonoBehaviour {
 	public float Virtical {
 		get {
 #if !UNITY_EDITOR && UNITY_IPHONE
-			return this.VirticalQuatanion;
+			return this.RotationX;
 #else
 			return Input.GetAxis(InputName.Vertical);
 #endif
@@ -70,7 +42,7 @@ public class PlayerInput : MonoBehaviour {
 	public Vector3 Axis {
 		get {
 #if !UNITY_EDITOR && UNITY_IPHONE
-			return new Vector3(this.HorizontalQuatanion, 0, this.VirticalQuatanion);
+			return new Vector3(this.RotationY, 0, this.RotationX);
 #else
 			return new Vector3(this.Horizontal, 0, this.Virtical);
 #endif
@@ -78,7 +50,19 @@ public class PlayerInput : MonoBehaviour {
 	}
 
 
+	//ジャンプボタンを押下している最中であることを通知
+	public bool JumpingInput {
+		get {
+#if !UNITY_EDITOR && UNITY_IPHONE
+			return (Input.touchCount>0 && Input.touches[0].phase == TouchPhase.Stationary);
+#else
+			return Input.GetButton(InputName.Jump);
+#endif
+		}
+	}
+
 	//ジャンプアクションに相当する入力があることを通知
+	//入力した瞬間
 	public bool JumpInput {
 
 		get {
@@ -107,4 +91,44 @@ public class PlayerInput : MonoBehaviour {
 	}
 
 
+	#region "回転の取得"
+	// ホームボタンを下にして縦持ちした際の
+	//縦軸をY(正:右を下方向倒す　負:左を下方向へ倒す)
+	//横軸をX(正:下を下方向へ倒す　負:上を下方向へ倒す)
+	//それぞれに直行する軸をZとする(正:時計回り、負:反時計回り)
+	//return new Vector3(this.HorizontalQuatanion, 0, this.VirticalQuatanion);
+	//回転係数
+	private float rotationFactor = 2.0f;
+	public float RotationFactor{
+		get{
+			return this.rotationFactor;
+		}
+		set{
+			this.rotationFactor = value;
+		}
+	}
+
+	//デバイス固有の値を得る
+	public float RotationX{
+		get{
+			float value = (Input.gyro.gravity.y - defaultQuatanion.y) * this.rotationFactor;
+			return Mathf.Clamp(value,-1.0f,1.0f);
+		}
+	}
+
+	public float RotationY{
+		get{
+			float value = (Input.gyro.gravity.x - this.defaultQuatanion.x) * this.rotationFactor;
+			return Mathf.Clamp(value,-1.0f,1.0f);
+		}
+	}
+
+	public float RotationZ{
+		get{
+			float value = (Input.gyro.gravity.z - this.defaultQuatanion.z) * this.rotationFactor;
+			return Mathf.Clamp(value,-1.0f,1.0f);
+		}
+	}
+
+	#endregion
 }	//end of class

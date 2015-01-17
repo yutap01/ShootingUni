@@ -143,6 +143,17 @@ public class LevelManager : MonoBehaviour {
 
 		//移動速度の設定
 		Chunk.ScrollSpeed = this.scrollSpeed;
+
+		//Rigidbodyを追加
+		Rigidbody rigidbody = chunk.transform.gameObject.AddComponent<Rigidbody>();
+		rigidbody.constraints = RigidbodyConstraints.FreezeRotation | 
+			RigidbodyConstraints.FreezePositionY | 
+			RigidbodyConstraints.FreezePositionX;
+		rigidbody.useGravity = false;	//重力無視
+		//rigidbody.isKinematic = true;	//物理挙動無視
+		rigidbody.mass = 1000;
+		rigidbody.useConeFriction = false;
+
 	}
 
 

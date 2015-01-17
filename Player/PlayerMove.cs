@@ -9,10 +9,12 @@ public class PlayerMove : MonoBehaviour {
 	//接地判定用
 	private const float groundLayY = 0.1f;					//下向きに飛ばすレイの距離
 	private static readonly Vector3 groundLayOffset = new Vector3(0, 0.2f, 0);	//transform.Positionに加算することでレイの原点を決定する
-	private const float groundLayR = 1;							//レイの半径
+	private const float groundLayR = 1.0f;							//レイの半径
 	//段差用
-	private const float stepLayZ = 1.8f;	//前向きに飛ばすレイの距離
-	private static readonly Vector3 stepLayOffset = new Vector3(0,1,0);
+	private const float stepLayZ = 0.8f;	//前向きに飛ばすレイの距離の基本値
+	private const float speedFactorZ = 12.0f;	//速度に対する係数　//距離はstepLayZ + (speed * speedFactor);
+	private const float stepLayR = 0.8f;
+	private static readonly Vector3 stepLayOffset = new Vector3(0,1.1f,0);
 	private static readonly Vector3 stepPower = new Vector3(0, 30, -30);	//段差にあたったときにかかる、上向き兼後ろ向きの力
 
 	#endregion
@@ -25,8 +27,13 @@ public class PlayerMove : MonoBehaviour {
 	//スクロール速度の変更イベント
 	public event PlayerValueChangeHandler ScrollSpeedChanged;
 
-	
 	private GameObject characterObj;	//キャラクター
+
+	//キャラクターが接地ごとにジャンプ可能な回数
+	[SerializeField]
+	private int maxJumpCapacity = 1;
+	//最終接地状態からのジャンプ可能数
+	private int jumpCapacity = 1;
 
 
 	[SerializeField]
@@ -111,29 +118,30 @@ public class PlayerMove : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-		//つまづき
+		//つまづき中ずっと
 		if (this.isStep()) {
-			this.hittedByStep();
+			this.stepProc();
 			return;
 		}
 
-		//ジャンプ
+		//ジャンプ瞬間
 		if(this.isJumped()){
-			this.rigidbody.AddForce(0, this.jumpPower, 0);
+			this.jumpProc();
 			return;
 		}
 
-		//空中ならば下向きの力を受ける
-		if (!this.isGrounded()) {
-			this.inAir();
+		//陸上ずっと
+		if (this.isGrounded()) {
+			this.jumpCapacity = this.maxJumpCapacity;
+		} else {
+			this.inAirProc();	//現在は何も行っていない
 		}
 
-		//移動
+		//常に行う処理
 		if (this.playerInput) {
-			Vector3 axis = this.playerInput.Axis;
-			this.characterObj.transform.position += axis * this.footwork * Time.deltaTime;
+			this.getGravity();
+			this.moveProc();
 		}
-
 
 		//スクロール速度の変化をテスト
 		this.ScrollSpeed += this.playerInput.ScrollSpeedInput *0.05f;
@@ -143,7 +151,7 @@ public class PlayerMove : MonoBehaviour {
 	void FixedUpdate(){
 
 		//接地判定(アニメーション制御のため)
-		this.characterAnimator.SetBool("IsGrounded",this.isGrounded("Ground",PlayerMove.groundLayY));
+		this.characterAnimator.SetBool("IsGrounded",this.isGrounded());
 
 	}
 
@@ -153,11 +161,48 @@ public class PlayerMove : MonoBehaviour {
 	}
 
 
+	#region "動作メソッド"
+	//ジャンプの瞬間
+	private void jumpProc() {
+		//ジャンプの瞬間はY速度を0にする
+		Vector3 velocity = this.rigidbody.velocity;
+		velocity.y = 0;
+		this.rigidbody.velocity = velocity;
+
+
+		this.rigidbody.AddForce(0, this.jumpPower, 0);
+		this.jumpCapacity--; //ジャンプアニメーションを再起動しなければいけない
+	}
+
+	//空中ずっと
+	private void inAirProc() {
+		//今現在は何も行っていない
+	}
+
+	//つまづき中ずっと
+	private void stepProc() {
+		this.rigidbody.AddForce(PlayerMove.stepPower);
+	}
+
+	//常に
+	private void moveProc() {
+		Vector3 axis = this.playerInput.Axis;
+		this.characterObj.transform.position += axis * this.footwork * Time.deltaTime;
+	}
+
+	//キック対象とのヒット瞬間
+	private void kickProc(Collider other) {
+		Debug.Log("hittedByKicable");
+	}
+	#endregion
+
+
+
 	#region "状況判定メソッド"
 
 	//有効なジャンプ入力が行われたか
 	private bool isJumped() {
-		return this.playerInput.JumpInput && this.isGrounded("Ground", PlayerMove.groundLayY);
+		return this.playerInput.JumpInput && this.jumpCapacity > 0;
 	}
 
 
@@ -186,31 +231,23 @@ public class PlayerMove : MonoBehaviour {
 		RaycastHit hit;
 		Transform transform = this.characterObj.transform;
 		Vector3 layOrigin = transform.position + PlayerMove.stepLayOffset;
-		//float distance = 1.5f + this.ScrollSpeed*2;
-		return (Physics.SphereCast(layOrigin, 0.5f, Vector3.forward, out hit, PlayerMove.stepLayZ, mask));
+		float distance = PlayerMove.stepLayZ + this.ScrollSpeed * PlayerMove.speedFactorZ;
+		return (Physics.SphereCast(layOrigin,PlayerMove.stepLayR, Vector3.forward, out hit, distance, mask));
 	}
 
 	#endregion
 
 
-	//空中にいるフレーム間に呼ばれる処理
-	void inAir() {
+	//重力を受ける
+	private void getGravity() {
 		//チャンプボタンを押しているときは下向きの力が減少する
 		//減少値はキャラクター固有とする
-		float g = this.gravity;
-		if (this.playerInput.JumpInput) {
+		float g = this.gravity ; //要修正：高い場所ほど重力が小さくなるように（ちょっと変な話ではあるが）
+		if (this.playerInput.JumpingInput) {
 			g -= this.endureGravity;
 		}
 		this.rigidbody.AddForce(0, -g, 0);
 	}
 
-	//段差とのヒット時に呼ばれる処理
-	void hittedByStep() {
-		this.rigidbody.AddForce(PlayerMove.stepPower);
-	}
 
-	//キック対象とのヒット時に呼ばれる処理
-	void hittedByKicable(Collider other) {
-		Debug.Log("hittedByKicable");
-	}
 }
