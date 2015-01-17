@@ -16,6 +16,9 @@ public class PlayerMove : MonoBehaviour {
 	private const float stepLayR = 0.8f;
 	private static readonly Vector3 stepLayOffset = new Vector3(0,1.1f,0);
 	private static readonly Vector3 stepPower = new Vector3(0, 30, -30);	//段差にあたったときにかかる、上向き兼後ろ向きの力
+	//落下判定用
+	private const float dropedLine = -10.0f;
+
 
 	#endregion
 
@@ -143,6 +146,11 @@ public class PlayerMove : MonoBehaviour {
 			this.moveProc();
 		}
 
+		//落下判定
+		if (this.isDropped()){
+			this.droppedProc();
+		}
+
 		//スクロール速度の変化をテスト
 		this.ScrollSpeed += this.playerInput.ScrollSpeedInput *0.05f;
 	}
@@ -194,6 +202,12 @@ public class PlayerMove : MonoBehaviour {
 	private void kickProc(Collider other) {
 		Debug.Log("hittedByKicable");
 	}
+
+	//落下時
+	private void droppedProc(){
+		Application.LoadLevel(Application.loadedLevelName);
+	}
+
 	#endregion
 
 
@@ -233,6 +247,11 @@ public class PlayerMove : MonoBehaviour {
 		Vector3 layOrigin = transform.position + PlayerMove.stepLayOffset;
 		float distance = PlayerMove.stepLayZ + this.ScrollSpeed * PlayerMove.speedFactorZ;
 		return (Physics.SphereCast(layOrigin,PlayerMove.stepLayR, Vector3.forward, out hit, distance, mask));
+	}
+
+	//落下判定
+	private bool isDropped() {
+		return (this.characterObj.transform.position.y < PlayerMove.dropedLine);
 	}
 
 	#endregion
