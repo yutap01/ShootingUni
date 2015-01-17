@@ -66,38 +66,18 @@ public class Level {
 	}
 
 
-	//ブロックを生成できる高さの範囲を規定する構造体
-	private struct HeightRange {
-		int min;
-		public int Min {
-			get {
-				return this.min;
-			}
-		}
-		int max;
-		public int Max {
-			get {
-				return this.max;
-			}
-		}
-		public HeightRange(int min, int max) {
-			this.min = min;
-			this.max = max;
-		}
-	}
-
 	//チャンク番号(サイクル当たりの最大チャンク番号 から見た 現在のチャンク番号 の割合）と高さの関係	//ブロックの高さの分布(それぞれのHeightRangeは等間隔で出現)
 	//minは必ず1以上でなければならない
 	//maxは必ず31以下でなければならない
-	private static HeightRange[] heightMap = new HeightRange[]{
-		new HeightRange(1,2),
- 		new HeightRange(1,4),
-		new HeightRange(4,10),
-		new HeightRange(9,14),
-		new HeightRange(12,21),
-		new HeightRange(18,28),
-		new HeightRange(25,31),
-		new HeightRange(31,31)
+	private static ValueRange[] heightMap = new ValueRange[]{
+		new ValueRange(1,2),
+ 		new ValueRange(1,4),
+		new ValueRange(4,10),
+		new ValueRange(9,14),
+		new ValueRange(12,21),
+		new ValueRange(18,28),
+		new ValueRange(25,31),
+		new ValueRange(31,31)
 	};
 
 
@@ -211,7 +191,7 @@ public class Level {
 
 			//有効な段の幅はgetStep内で把握するべきかもしれないが
 			//getStepにはmin,maxを外部から指定可能にしたかったのでこのようにした。
-			HeightRange heightRange = heightMap[this.getChunkRange(this.chunkCount, Level.heightMap.Length)];
+			ValueRange heightRange = heightMap[this.getChunkRange(this.chunkCount, Level.heightMap.Length)];
 
 			//段差の有無を判定
 			int step = getStep(heightRange.Min, heightRange.Max);	//段差を取得			

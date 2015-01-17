@@ -18,6 +18,8 @@ public class PlayerMove : MonoBehaviour {
 	private static readonly Vector3 stepPower = new Vector3(0, 30, -30);	//段差にあたったときにかかる、上向き兼後ろ向きの力
 	//落下判定用
 	private const float dropedLine = -10.0f;
+	//移動範囲制限
+	private static readonly ValueRange moveLimitZ = new ValueRange(1,Chunk.SIZE_Z);
 
 
 	#endregion
@@ -144,7 +146,9 @@ public class PlayerMove : MonoBehaviour {
 		if (this.playerInput) {
 			this.getGravity();
 			this.moveProc();
+			this.limitMoveZ();//移動範囲制限(チェックはZのみ行う)
 		}
+
 
 		//落下判定
 		if (this.isDropped()){
@@ -266,6 +270,13 @@ public class PlayerMove : MonoBehaviour {
 			g -= this.endureGravity;
 		}
 		this.rigidbody.AddForce(0, -g, 0);
+	}
+
+	//Z範囲のみ制限をうける
+	private void limitMoveZ() {
+		Vector3 position = this.characterObj.transform.position;
+		position.z = Mathf.Clamp(position.z,(float)PlayerMove.moveLimitZ.Min,(float)PlayerMove.moveLimitZ.Max);
+		this.characterObj.transform.position = position;
 	}
 
 
