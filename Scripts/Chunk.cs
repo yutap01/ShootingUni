@@ -230,6 +230,22 @@ public class Chunk : MonoBehaviour {
 		return changed;
 	}
 
+	//指定ブロック位置(x,z)の高さ(y:ブロックの存在する位置)を求める
+	//従来であれば、index:0にもブロックがあることを考慮すべきだが、
+	//チャンクのブロック位置は1以上であることが保証されている。
+	//従って、ブロックが存在しない場合は0を通知することとした
+	public int height(int x, int z) {
+		for (int y = Chunk.SIZE_Y-1; y > 0; y--) {
+			BlockData blockData = this.chunkData.GetBlock(new Vector3i(x, y, z));
+			if (!blockData.IsEmpty()) {
+				return y;
+			}
+		}
+		return 0;
+	}
+
+
+
 
 	//ブロック座標から、チャンク座標に変換
 	public static Vector3i ToChunkPosition(Vector3i point) {

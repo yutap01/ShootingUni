@@ -20,6 +20,10 @@ public class LevelManager : MonoBehaviour {
 	private int startChunks = 0;	//スタート時点で生成するチャンク数
 		
 
+	//最終プレイにおける走行距離
+	//あくまでも最後に生成したチャンクの最後尾位置を基準としている点に注意
+	private uint lastPlayDistance = 0;
+
 
 	//現在のサイクル番号(最小は0)
 	//サイクル番号を設定するとサイクル距離が自動的にゼロにリセットされる
@@ -82,6 +86,8 @@ public class LevelManager : MonoBehaviour {
 			this.createPosition.z += Chunk.SIZE_Z;			
 		}
 		this.createPosition.z -= Chunk.SIZE_Z;	//以降は上記の最後の一つと同じ位置に作る
+		this.lastPlayDistance = (uint)this.startChunks * Chunk.SIZE_Z;
+	
 	}
 
 
@@ -106,6 +112,14 @@ public class LevelManager : MonoBehaviour {
 			}
 
 			this.initChunk(chunk);
+
+
+			//走行距離
+			this.lastPlayDistance += Chunk.SIZE_Z;
+
+			//立て看板
+			//ここから
+
 
 
 			//手前に戻り過ぎたら一回分余計に作って生成位置を後方へ移動する
@@ -165,7 +179,7 @@ public class LevelManager : MonoBehaviour {
 	}
 
 
-	//カレントサイクルが終了
+	//カレントレベルが終了
 	private void levelFinished() {
 		//レベルの更新
 		this.LevelNumber++;	//プロパティが新たなサイクルを自動生成する
