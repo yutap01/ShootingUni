@@ -6,9 +6,22 @@ using System.Collections.Generic;
 [AddComponentMenu("Map/MapGenerator")]
 public class LevelManager : MonoBehaviour {
 
-	private Map map;	
 	//private TerrainGenerator terrainGenerator;
 	//private TreeGenerator treeGenerator;
+
+
+	//レベル列
+	[SerializeField]
+	private Level[] levels = null;
+
+	//天気エフェクト
+	private const string rainName = "Rain";
+	private GameObject rain = null;
+	private const string thunderName = "Lightning";
+	private GameObject thunder = null;
+	private const string snowName = "Snowfall";
+	private GameObject snow = null;
+
 
 	//チャンクの生成位置
 	private Vector3 createPosition = new Vector3(0,0,0);
@@ -28,41 +41,69 @@ public class LevelManager : MonoBehaviour {
 	//現在のサイクル番号(最小は0)
 	//サイクル番号を設定するとサイクル距離が自動的にゼロにリセットされる
 	private uint levelNumber = 0;
-	public uint LevelNumber {
-		get {
-			return this.levelNumber;
-		}
-		set {
-			this.levelNumber = value;
-			this.currentLevel = new Level(this.levelNumber,this.map,this.blockName(levelNumber));
-		}
-	}
 
-	//レベル番号に応じた地面ブロック名を取得
-	private string blockName(uint levelNumer) {
-		BlockSet blockSet = this.map.GetBlockSet();
-		int idx = (int)levelNumber % blockSet.GetCount();
-		return blockSet.GetBlock(idx).GetName();
-	}
 
 	//現在のレベル
 	private Level currentLevel = null;
 
+	//現在の天気
+	private bool isRain = false;
+	private bool isSnow = false;
+	private bool isThunder = false;
+	private int brightness = 0;
+
+	//次のレベルへ移行する
+	private void toNextLevel() {
+		this.levelNumber++;
+		int idxLevel = (int)this.levelNumber % this.levels.Length;
+		this.currentLevel = this.levels[idxLevel];
+		this.currentLevel.Reset(this.levelNumber);		//レベルの初期化
+
+
+		//レベルから得られる状態を反映
+		float weatherRate = Random.Range(0.0f, 1.0f);
+
+		//天気
+		this.isRain = (this.currentLevel.RainRate > weatherRate);
+ 		this.isSnow = (!this.isRain && (this.currentLevel.SnowRate > weatherRate));			//雨のとき雪は降らない
+		this.isThunder = (this.isRain && (this.currentLevel.ThunderRate > weatherRate));	//雨でないと雷は降らない
+
+		//Debug.Log("rain is" + this.isRain + " thunder is " + this.isThunder);
+
+		//ライティング
+		this.brightness = this.currentLevel.Brightness;
+	}
+
 	//全長
 	public ulong FullDistance {
 		get {
-			return Level.FullDistance * this.LevelNumber + this.currentLevel.CurrentDistance;
+			return Level.FullDistance * this.levelNumber + this.currentLevel.CurrentDistance;
 		}
 	}
 
 	void Awake() {
-		map = GetComponent<Map>();
+
+		//コンポーネント取得
+		Level.Map = GetComponent<Map>();
+		this.rain = this.transform.FindChild(LevelManager.rainName).gameObject;
+		this.rain.SetActive(false);
+
+		this.thunder = this.transform.FindChild(LevelManager.thunderName).gameObject;
+		this.thunder.SetActive(false);
+
+		this.snow = this.transform.FindChild(LevelManager.snowName).gameObject;
+		this.snow.SetActive(false);
 
 		GameObject objPlayer = GameObject.FindGameObjectWithTag(TagName.Player);
 		PlayerMove playerMove = objPlayer.GetComponent<PlayerMove>();
-			
-		//チャンク生成サイクルの決定
-		this.LevelNumber = 0;
+		
+	
+		//チャンク生成サイクルの決定（TODO:指定レベルで)
+		this.levelNumber = 0;
+		this.currentLevel = this.levels[this.levelNumber];
+		this.currentLevel.Reset(levelNumber);
+
+
 		this.scrollSpeed = playerMove.ScrollSpeed;
 		
 		//スクロール速度の変更イベントへ登録
@@ -98,6 +139,11 @@ public class LevelManager : MonoBehaviour {
 
 		//チャンク生成タイミング
 		if (chunkOffset > Chunk.SIZE_Z) {
+
+			//天気を反映
+			this.rain.SetActive(this.isRain);
+			this.thunder.SetActive(this.isThunder);
+			this.snow.SetActive(this.isSnow);
 
 			//チャンク生成場所を補正する(移動しすぎた分、生成位置を補正する)
 			//この方式だと速度を変える度に生成箇所が0に近づいていってしまう・・。
@@ -141,15 +187,13 @@ public class LevelManager : MonoBehaviour {
 
 			this.chunkOffset = 0;
 		}
-
-
 	}
 
 	//取得したチャンクの座標情報を初期化
 	private void initChunk(Chunk chunk) {
 
 		chunk.SetDirty();
-		chunk.LevelNumber = this.LevelNumber;
+		chunk.LevelNumber = this.levelNumber;
 		chunk.ChunkNumber = this.currentLevel.ChunkCount - 1;
 
 		chunk.transform.position = this.createPosition;
@@ -182,7 +226,7 @@ public class LevelManager : MonoBehaviour {
 	//カレントレベルが終了
 	private void levelFinished() {
 		//レベルの更新
-		this.LevelNumber++;	//プロパティが新たなサイクルを自動生成する
+		this.toNextLevel();
 	}
 
 }	//end of class

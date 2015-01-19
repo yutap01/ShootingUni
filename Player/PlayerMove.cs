@@ -7,9 +7,10 @@ public class PlayerMove : MonoBehaviour {
 
 	private const float shadowProjectorY = 2;	//Brob Shadow Projectorのキャラクタからの高さ
 	//接地判定用
-	private const float groundLayY = 0.1f;					//下向きに飛ばすレイの距離
+	private const float groundLayY = 0.03f;					//下向きに飛ばすレイの距離
 	private static readonly Vector3 groundLayOffset = new Vector3(0, 0.2f, 0);	//transform.Positionに加算することでレイの原点を決定する
 	private const float groundLayR = 1.0f;							//レイの半径
+	private const int limitGround = 5;	//ジャンプしてからlimitGroundフレームは着地判定を行わない	
 	//段差用
 	private const float stepLayZ = 0.8f;	//前向きに飛ばすレイの距離の基本値
 	private const float speedFactorZ = 12.0f;	//速度に対する係数　//距離はstepLayZ + (speed * speedFactor);
@@ -37,9 +38,11 @@ public class PlayerMove : MonoBehaviour {
 	//キャラクターが接地ごとにジャンプ可能な回数
 	[SerializeField]
 	private int maxJumpCapacity = 1;
+	
 	//最終接地状態からのジャンプ可能数
 	private int jumpCapacity = 1;
-
+	//最後にジャンプ入力した時のフレーム数(接地判定が可能になるまでの待ち時間をカウントする)
+	private int lastJumpedTime = 0;
 
 	[SerializeField]
 	private float scrollSpeed = 0.0f;
@@ -123,15 +126,15 @@ public class PlayerMove : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-		//つまづき中ずっと
-		if (this.isStep()) {
-			this.stepProc();
+		//ジャンプ瞬間
+		if (this.isJumped()) {
+			this.jumpProc();
 			return;
 		}
 
-		//ジャンプ瞬間
-		if(this.isJumped()){
-			this.jumpProc();
+		//つまづき中ずっと
+		if (this.isStep()) {
+			this.stepProc();
 			return;
 		}
 
@@ -176,14 +179,17 @@ public class PlayerMove : MonoBehaviour {
 	#region "動作メソッド"
 	//ジャンプの瞬間
 	private void jumpProc() {
+		--this.jumpCapacity; //ジャンプアニメーションを再起動しなければいけない
 		//ジャンプの瞬間はY速度を0にする
 		Vector3 velocity = this.rigidbody.velocity;
 		velocity.y = 0;
 		this.rigidbody.velocity = velocity;
 
+		//ジャンプ開始時刻を覚える(接地判定が有効になるまでの時間をカウントするため)
+		this.lastJumpedTime = Time.frameCount;
+
 
 		this.rigidbody.AddForce(0, this.jumpPower, 0);
-		this.jumpCapacity--; //ジャンプアニメーションを再起動しなければいけない
 	}
 
 	//空中ずっと
@@ -220,7 +226,7 @@ public class PlayerMove : MonoBehaviour {
 
 	//有効なジャンプ入力が行われたか
 	private bool isJumped() {
-		return this.playerInput.JumpInput && this.jumpCapacity > 0;
+		return this.playerInput.JumpInput && (this.jumpCapacity > 0);
 	}
 
 
@@ -232,6 +238,11 @@ public class PlayerMove : MonoBehaviour {
 	}
 	//接地判定(地面のタグ名と検索距離を指定)
 	private bool isGrounded(string tagName, float rayDepth) {
+		//接地判定が可能になるまでの時間を経過しているかチェック
+		if ((Time.frameCount - this.lastJumpedTime) < PlayerMove.limitGround) {
+			return false;
+		} 
+
 		int mask = 1 << LayerMask.NameToLayer(tagName); // Groundレイヤーにのみを対象
 
 		RaycastHit hit;

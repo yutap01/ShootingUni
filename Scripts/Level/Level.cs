@@ -4,19 +4,12 @@ using System.Collections;
 
 //生成すべきブロックの高さを管理するクラス
 //またChunkGeneratorにサイクルの終了を伝えるクラス
-public class Level {
-
-	public Level(uint levelNumber,Map map,string blockName) {
-		this.levelNumber = levelNumber;
-		this.chunkCount = 0;
-		this.map = map;
-		this.blockName = blockName;
-	}
+public abstract class Level : MonoBehaviour {
 
 	#region "定数"
 
 	//レベル当たりの距離
-	public const int FullDistance = 960;	//単位:メートル
+	public const int FullDistance = 3200;	//単位:メートル
 
 	//レベル当たりのチャンク数
 	public const int ChunkCountByCycle = Level.FullDistance / Chunk.SIZE_Z;	//小数点以下は無視でよい
@@ -24,20 +17,68 @@ public class Level {
 	#endregion
 
 
+	#region "天気"
+
+	//それぞれが生じる率(0-1)
+	[SerializeField]
+	protected float rainRate = 0;
+	public float RainRate {
+		get {
+			return this.rainRate;
+		}
+	}
+	[SerializeField]
+	protected float snowRate = 0;
+	public float SnowRate {
+		get {
+			return this.snowRate;
+		}
+	}
+	[SerializeField]
+	protected float thunderRate = 0;
+	public float ThunderRate {
+		get {
+			return this.thunderRate;
+		}
+	}
+	
+	//天気の明るさ
+	[SerializeField]
+	protected int brightness = 0;
+	public int Brightness {
+		get {
+			return this.brightness;
+		}
+	}
+
+	#endregion
+
+
 	//マップの定義情報
-	private Map map = null;
+	static protected Map map;
+	public static Map Map {
+		set {
+			Level.map = value;
+		}
+		get {
+			return Level.map;
+		}
+	}
 
 	//現レベルのメインブロック
-	private string blockName;
-	public string BlockName {
+	[SerializeField]
+	protected string blockName;
+	public string BlockName{
 		get {
 			return this.blockName;
 		}
 	}
 
 
+
+
 	//現レベルのレベル番号
-	private uint levelNumber;
+	protected uint levelNumber;
 	public uint LevelNumber {
 		get {
 			return this.levelNumber;
@@ -45,6 +86,14 @@ public class Level {
 	}
 
 	
+	//レベル状態をリセットする
+	public virtual void Reset(uint levelNumber) {
+		this.levelNumber = levelNumber;
+		this.chunkCount = 0;
+		this.generateY = 1;
+	}
+
+
 	//現レベルでの移動距離
 	//サイクル距離や全長とは、最後に生成したチャンクの最大Z座標(一番奥)を示している
 	public uint CurrentDistance {
@@ -55,7 +104,7 @@ public class Level {
 
 
 	//生成したチャンクの数
-	private int chunkCount = 0;
+	protected int chunkCount = 0;
 	public int ChunkCount {
 		get {
 			return this.chunkCount;
@@ -91,7 +140,7 @@ public class Level {
 	//90-99 9 の10種に刻まれる
 	//各幅の密度はいずれも等しい
 	//どの刻み位置に入るかを通知する
-	private int getChunkRange(int chunkNumber, int stride) {
+	protected int getChunkRange(int chunkNumber, int stride) {
 		return stride * chunkNumber / Level.ChunkCountByCycle;
 	}
 
@@ -177,13 +226,13 @@ public class Level {
 		}
 
 
-
 		BlockSet blockSet = map.GetBlockSet();
 		Block b = blockSet.GetBlock(this.blockName);
 		BlockData bd = new BlockData(b);
 		ChunkData cd = new ChunkData(map, new Vector3i(0, 0, 0));	//0,0,0固定
 
-
+		//TODO 即値撤廃
+		Recti blankArea = (this.chunkCount > 3)? this.getBlankArea() : new Recti(0,0,0,0);
 
 		//チャンクデータにブロックを並べる(yは必ず0より大)
 		for (int z = 0; z < Chunk.SIZE_Z; z++) {
@@ -207,6 +256,11 @@ public class Level {
 				if (x == changeX) {	//段差が変化する位置になったら
 					this.generateY += step;	//段差を変化させる
 				}
+
+				//ブランク領域にはブロックを配置しない
+				if (blankArea.isInside(x, z)) {
+					continue;
+				}
 				cd.SetBlock(bd, x, this.generateY, z);
 			}
 		}
@@ -218,6 +272,16 @@ public class Level {
 		return cd.GetChunkInstance(); 
 	}
 
+	//ブロックを置かない領域を作る
+	//試しにランダムで
+	private Recti getBlankArea() {
+			int x = Random.Range(0, Chunk.SIZE_X);
+			int y = Random.Range(0, Chunk.SIZE_Z);
 
+			int w = Random.Range(6, Chunk.SIZE_X - x);
+			int h = Random.Range(6, Chunk.SIZE_Z - y);
+
+		return new Recti(x, y, w, h);
+	}
 
 }	// end of class

@@ -7,7 +7,7 @@ public class Foot : MonoBehaviour {
 	private GameObject playerObj = null;
 
 	//地面にめり込んだ時の強制排出量
-	private const float escapeY = 1.0f;
+	private const float escapeY = 0.1f;
 
 
 	// Use this for initialization
