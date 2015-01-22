@@ -12,14 +12,14 @@ public class LevelManager : MonoBehaviour {
 
 	//レベル列
 	[SerializeField]
-	private Level[] levels = null;
+	private string[] levels = null;
 
 	//天気エフェクト
-	private const string rainName = "Rain";
+	private const string rainName = "WeatherEffect/Rain";
 	private GameObject rain = null;
-	private const string thunderName = "Lightning";
+	private const string thunderName = "WeatherEffect/Lightning";
 	private GameObject thunder = null;
-	private const string snowName = "Snowfall";
+	private const string snowName = "WeatherEffect/Snowfall";
 	private GameObject snow = null;
 
 
@@ -40,6 +40,7 @@ public class LevelManager : MonoBehaviour {
 
 	//現在のサイクル番号(最小は0)
 	//サイクル番号を設定するとサイクル距離が自動的にゼロにリセットされる
+	[SerializeField]
 	private uint levelNumber = 0;
 
 
@@ -55,24 +56,37 @@ public class LevelManager : MonoBehaviour {
 	//次のレベルへ移行する
 	private void toNextLevel() {
 		this.levelNumber++;
-		int idxLevel = (int)this.levelNumber % this.levels.Length;
-		this.currentLevel = this.levels[idxLevel];
+		this.initLevel(this.levelNumber);
+	}
+
+	//指定レベルを初期化する
+	private void initLevel(uint levelNumber) {
+
+		int idxLevel = (int)levelNumber % this.levels.Length;
+
+		//過去のレベルを消去する
+		if (this.currentLevel != null) {
+			GameObject.Destroy(this.currentLevel.gameObject);
+		}
+		this.currentLevel = Utility.GetChildFromResource(this.gameObject, this.levels[idxLevel]).GetComponent<Level>();
 		this.currentLevel.Reset(this.levelNumber);		//レベルの初期化
+	}
 
 
+	//天気のリセットはゲームマスターから呼ばれるためpublicとなっている
+	public void InitWeather() {
 		//レベルから得られる状態を反映
 		float weatherRate = Random.Range(0.0f, 1.0f);
-
+		
 		//天気
 		this.isRain = (this.currentLevel.RainRate > weatherRate);
- 		this.isSnow = (!this.isRain && (this.currentLevel.SnowRate > weatherRate));			//雨のとき雪は降らない
+		this.isSnow = (!this.isRain && (this.currentLevel.SnowRate > weatherRate));			//雨のとき雪は降らない
 		this.isThunder = (this.isRain && (this.currentLevel.ThunderRate > weatherRate));	//雨でないと雷は降らない
-
-		//Debug.Log("rain is" + this.isRain + " thunder is " + this.isThunder);
 
 		//ライティング
 		this.brightness = this.currentLevel.Brightness;
 	}
+
 
 	//全長
 	public ulong FullDistance {
@@ -85,27 +99,20 @@ public class LevelManager : MonoBehaviour {
 
 		//コンポーネント取得
 		Level.Map = GetComponent<Map>();
-		this.rain = this.transform.FindChild(LevelManager.rainName).gameObject;
+		this.rain = Utility.GetChildFromResource(this.gameObject, LevelManager.rainName);
 		this.rain.SetActive(false);
 
-		this.thunder = this.transform.FindChild(LevelManager.thunderName).gameObject;
+		this.thunder = Utility.GetChildFromResource(this.gameObject, LevelManager.thunderName);
 		this.thunder.SetActive(false);
 
-		this.snow = this.transform.FindChild(LevelManager.snowName).gameObject;
+		this.snow = Utility.GetChildFromResource(this.gameObject, LevelManager.snowName);
 		this.snow.SetActive(false);
 
+
+		//プレーヤからスクロール速度を得る
 		GameObject objPlayer = GameObject.FindGameObjectWithTag(TagName.Player);
 		PlayerMove playerMove = objPlayer.GetComponent<PlayerMove>();
-		
-	
-		//チャンク生成サイクルの決定（TODO:指定レベルで)
-		this.levelNumber = 0;
-		this.currentLevel = this.levels[this.levelNumber];
-		this.currentLevel.Reset(levelNumber);
-
-
 		this.scrollSpeed = playerMove.ScrollSpeed;
-		
 		//スクロール速度の変更イベントへ登録
 		playerMove.ScrollSpeedChanged += new PlayerMove.PlayerValueChangeHandler(this.scrollSpeedChanged);			
 
@@ -115,19 +122,7 @@ public class LevelManager : MonoBehaviour {
 
 
 	void Start() {
-		//スタート地点
-		for (int i = 0; i < this.startChunks; i++) {
-			Chunk chunk = this.currentLevel.NextChunk();
-			if (chunk == null) {
-				this.levelFinished();
-				return;
-			}
-
-			this.initChunk(chunk);
-			this.createPosition.z += Chunk.SIZE_Z;			
-		}
-		this.createPosition.z -= Chunk.SIZE_Z;	//以降は上記の最後の一つと同じ位置に作る
-		this.lastPlayDistance = (uint)this.startChunks * Chunk.SIZE_Z;
+		this.ResetLevel();
 	
 	}
 
@@ -199,6 +194,10 @@ public class LevelManager : MonoBehaviour {
 		chunk.transform.position = this.createPosition;
 		chunk.transform.name = "Chunk " + chunk.LevelNumber + "-" + chunk.ChunkNumber;
 
+		chunk.gameObject.layer = LayerName.Ground;
+		chunk.gameObject.tag = TagName.Ground;
+
+
 		//移動速度の設定
 		Chunk.ScrollSpeed = this.scrollSpeed;
 
@@ -228,6 +227,78 @@ public class LevelManager : MonoBehaviour {
 		//レベルの更新
 		this.toNextLevel();
 	}
+
+	//現在のレベルでリセット
+	public void ResetLevel() {
+		this.clearChunks();	//現在のチャンクを全て消す
+
+		//レベルを変更
+		//過去のレベルを抹消
+		if (this.currentLevel) {
+			GameObject.Destroy(this.currentLevel.gameObject);
+		}
+		//レベルを再構築
+		this.currentLevel = Utility.GetChildFromResource(this.gameObject, this.levels[this.levelNumber]).GetComponent<Level>();
+
+		//レベルを初期化
+		this.currentLevel.Reset(levelNumber);
+
+		//生成位置を初期化
+		this.initStartCreatePosition();
+
+		//初期チャンクを生成(生成しながら生成位置をずらす)
+		this.createStartChunks();
+
+	}
+
+	//指定レベルでリセット
+	public void ResetLevel(uint levelNumber) {
+		this.levelNumber = levelNumber;
+		this.ResetLevel();
+	}
+
+	//現在生成されているチャンクを全て消去する
+	void clearChunks() {
+
+		foreach (GameObject obj in Utility.GetChildObjectsByTag(this.gameObject, TagName.Ground)) {
+			//Chunkを得られるか否かで本物のChunkであることを確認
+			Chunk chunk = obj.GetComponent<Chunk>();
+			if (chunk == null) {
+				Debug.LogError(this.gameObject.name + "内にGroundタグを持つ非チャンク(" + obj.name + ")があります");
+				continue;
+			}
+
+			GameObject.Destroy(obj);
+		}
+	}
+
+
+	//リセット時(初期の配置を生成)
+	private void createStartChunks() {
+
+		for (int i = 0; i < this.startChunks; i++) {
+			Chunk chunk = this.currentLevel.NextChunk();
+			if (chunk == null) {
+				this.levelFinished();
+				return;
+			}
+
+			this.initChunk(chunk);
+			this.createPosition.z += Chunk.SIZE_Z;
+		}
+		this.createPosition.z -= Chunk.SIZE_Z;	//以降は上記の最後の一つと同じ位置に作る
+		this.lastPlayDistance = (uint)this.startChunks * Chunk.SIZE_Z;
+	}
+
+
+	//初期生成位置を設定
+	private void initStartCreatePosition() {
+		//チャンク生成位置の初期化
+		this.createPosition = this.transform.position;
+		//Xのみチャンクの中央が0となるように補正
+		this.createPosition.x -= (Chunk.SIZE_X / 2);
+	}
+
 
 }	//end of class
 

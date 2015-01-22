@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
-
+using System.Collections.Generic;
 
 public static class Utility{
 
@@ -26,7 +26,8 @@ public static class Utility{
 		GameObject prefab = GetPrefabFromResource(prefabName);
 
 		//インスタンス化
-		GameObject child = Object.Instantiate (prefab,parent.transform.position, Quaternion.identity) as GameObject;
+		GameObject child = Object.Instantiate(prefab) as GameObject;
+		//GameObject child = Object.Instantiate (prefab,parent.transform.position, Quaternion.identity) as GameObject;
 		if(child == null){
 			Debug.LogError("Child化(parent:" + parent.name + " child:" + prefabName + ")に失敗"); 
 		}
@@ -53,6 +54,38 @@ public static class Utility{
 	//前提:Tag名 Player かつ オブジェクト名 Player
 	public static GameObject GetPlayerObject(){
 		return Utility.GetGameObject(Utility.playerName, Utility.playerName);
+	}
+
+	//指定ゲームオブジェクトの子ゲームオブジェクトのうち、タグが指定名のものを通知する
+	public static List<GameObject> GetChildObjectsByTag(GameObject parent, string tagName) {
+
+		List<GameObject> res = new List<GameObject>();
+
+		foreach (Transform transform in parent.transform) {
+			if (transform.gameObject.tag == tagName) {
+				res.Add(transform.gameObject);
+			}
+		}
+
+		return res;
+	}
+
+
+	//GetComponentの取得失敗時にエラーとなるバージョン
+	public static T GetSafeComponent<T>(this GameObject obj) where T : MonoBehaviour {
+		T component = obj.GetComponent<T>();
+
+		if (component == null) {
+			Debug.LogError("Expected to find component of type "
+				 + typeof(T) + " but found none", obj);
+		}
+
+		return component;
+	}
+
+	//Colliderの主体が指定のタグ名を持つか否かを判定する
+	public static bool isColliderOwnerHasTag(Collider collider,string tagName) {
+		return (collider.gameObject.tag == tagName);
 	}
 
 } // end of class

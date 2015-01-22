@@ -4,7 +4,7 @@ using System.Collections;
 
 //生成すべきブロックの高さを管理するクラス
 //またChunkGeneratorにサイクルの終了を伝えるクラス
-public abstract class Level : MonoBehaviour {
+public abstract class Level:MonoBehaviour{
 
 	#region "定数"
 
@@ -232,7 +232,7 @@ public abstract class Level : MonoBehaviour {
 		ChunkData cd = new ChunkData(map, new Vector3i(0, 0, 0));	//0,0,0固定
 
 		//TODO 即値撤廃
-		Recti blankArea = (this.chunkCount > 3)? this.getBlankArea() : new Recti(0,0,0,0);
+		Rect2i blankArea = (this.chunkCount > 3)? this.getBlankArea() : new Rect2i(0,0,0,0);
 
 		//チャンクデータにブロックを並べる(yは必ず0より大)
 		for (int z = 0; z < Chunk.SIZE_Z; z++) {
@@ -274,14 +274,14 @@ public abstract class Level : MonoBehaviour {
 
 	//ブロックを置かない領域を作る
 	//試しにランダムで
-	private Recti getBlankArea() {
+	private Rect2i getBlankArea() {
 			int x = Random.Range(0, Chunk.SIZE_X);
 			int y = Random.Range(0, Chunk.SIZE_Z);
 
-			int w = Random.Range(6, Chunk.SIZE_X - x);
-			int h = Random.Range(6, Chunk.SIZE_Z - y);
+			int w = Random.Range(4, Chunk.SIZE_X - x);
+			int h = Random.Range(4, Chunk.SIZE_Z - y);
 
-		return new Recti(x, y, w, h);
+		return new Rect2i(x, y, w, h);
 	}
 
 }	// end of class

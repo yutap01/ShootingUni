@@ -4,11 +4,22 @@ using System.Collections;
 public class Foot : MonoBehaviour {
 
 
-	private GameObject playerObj = null;
+	//キャラクター救済時の補正値
+	private const float recoverY = 0.5f;
+
+	//キャラクターTransform
+	Transform characterTransform = null;
+	//プレイヤーのTransform
+	Transform playerTransform = null;
 
 	//地面にめり込んだ時の強制排出量
 	private const float escapeY = 0.1f;
 
+
+	void Awake() {
+		this.characterTransform = this.transform.parent;	//Footはキャラクターの配下
+		this.playerTransform = Utility.GetPlayerObject().transform;
+	}
 
 	// Use this for initialization
 	void Start () {
@@ -21,23 +32,38 @@ public class Foot : MonoBehaviour {
 	}
 
 
-	//チャンクに体がめり込んだ時の救済処置
-	void OnTriggerStay(Collider collider){
-		
-		
-		Transform transform = collider.transform;
-		//Groundへのめり込み判定
-		if (transform.gameObject.layer == LayerName.Ground){
+	//TODO
+	//救済の際にダメージを受ける
+	//ダメージアニメーション
 
-			if (this.playerObj == null) {
-				this.playerObj = Utility.GetPlayerObject();
+	//チャンクに足がめり込んだ瞬間(非常救済措置)
+	private void OnTriggerEnter(Collider collider) {
+		this.recoverCharacter(collider);
+	}
+	private void OnTriggerStay(Collider collider) {
+		this.recoverCharacter(collider);
+	}
+
+
+	//チャンクにめり込んだ体を地上へ戻す
+	private void recoverCharacter(Collider collider) {
+		//めり込んだ相手がチャンクであれば
+		if (Utility.isColliderOwnerHasTag(collider, TagName.Ground)) {
+			Chunk chunk = collider.gameObject.GetComponent<Chunk>();
+			//チャンクから高さ情報を得る
+			if (chunk != null) {
+				Vector3 characterPos = this.characterTransform.position;
+				int height = chunk.HeightWithGlobalPos(characterPos);
+				//高さの修正
+				//調整値を要する可能性がある
+				if (height != 0) {
+					//位置の補正はPlayerに対して行う
+					Vector3 correctionPosition = this.playerTransform.position;
+					correctionPosition.y = height + Foot.recoverY;
+					this.playerTransform.position = correctionPosition;
+
+				}
 			}
-
-			//離脱
-			Vector3 position = this.playerObj.transform.position;
-			position.y += Foot.escapeY;
-			this.playerObj.transform.position = position;
-		} 
-
+		}
 	}
 }

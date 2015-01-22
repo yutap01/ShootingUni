@@ -70,9 +70,6 @@ public class Chunk : MonoBehaviour {
 		go.transform.localRotation = Quaternion.identity;
 		go.transform.localScale = Vector3.one;
 		
-    //追加
-    go.layer = LayerName.Ground;
-
 		Chunk chunk = go.AddComponent<Chunk>();
 		chunk.blockSet = map.GetBlockSet();
 		chunk.chunkData = chunkData;
@@ -234,7 +231,7 @@ public class Chunk : MonoBehaviour {
 	//従来であれば、index:0にもブロックがあることを考慮すべきだが、
 	//チャンクのブロック位置は1以上であることが保証されている。
 	//従って、ブロックが存在しない場合は0を通知することとした
-	public int height(int x, int z) {
+	public int HeightWithLocalPos(int x, int z) {
 		for (int y = Chunk.SIZE_Y-1; y > 0; y--) {
 			BlockData blockData = this.chunkData.GetBlock(new Vector3i(x, y, z));
 			if (!blockData.IsEmpty()) {
@@ -242,6 +239,42 @@ public class Chunk : MonoBehaviour {
 			}
 		}
 		return 0;
+	}
+	public int HeightWithLocalPos(Vector2i pos){
+		return this.HeightWithLocalPos(pos.X, pos.Y);
+	}
+
+
+	//指定ワールド座標におけるブロックの高さを通知する
+	//ブロックが存在しない場合、またはチャンクが無関係な位置に存在する場合は0を通知する
+	public int HeightWithGlobalPos(float x, float z) {
+
+		Transform myTransform = this.transform;
+		Vector3 myPosition = myTransform.position;
+
+		Rect2 chunkRect = new Rect2(myPosition,new Vector2(Chunk.SIZE_X,Chunk.SIZE_Z));
+
+		//チャンク領域内判定
+		if (!chunkRect.isInside(x, z)) {
+			return 0;
+		}
+
+		return this.HeightWithLocalPos(this.globalXZtoChunkXZ(x, z));
+	}
+	public int HeightWithGlobalPos(Vector2 pos){
+		return this.HeightWithGlobalPos(pos.x, pos.y);
+	}
+
+
+	private Vector2i globalXZtoChunkXZ(float x, float z) {
+		
+		Vector3 chunkPos = this.transform.position;
+
+		//Debug.Log("x = " + x + " z = " + z + " chunk = (" + position.x + "," + position.z + ")");
+
+		int chunkX = Mathf.Clamp(Mathf.FloorToInt(x - chunkPos.x),0,Chunk.SIZE_X-1);
+		int chunkZ = Mathf.Clamp(Mathf.FloorToInt(z - chunkPos.z),0,Chunk.SIZE_Z-1);
+		return new Vector2i(chunkX, chunkZ);
 	}
 
 
@@ -271,7 +304,7 @@ public class Chunk : MonoBehaviour {
 	}
 	
 
-	//チャンク座標ので指定したチャンクの、ブロック座標で指定したブロックの座標をグローバル座標へ変換
+	//チャンク座標で指定したチャンクに対する、ブロック座標で指定したブロックの座標をグローバル座標へ変換
 	public static Vector3i ToWorldPosition(Vector3i chunkPosition, Vector3i localPosition) {
 		int worldX = (chunkPosition.x << SIZE_X_BITS) + localPosition.x;
 		int worldY = (chunkPosition.y << SIZE_Y_BITS) + localPosition.y;

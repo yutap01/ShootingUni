@@ -7,21 +7,20 @@ public class PlayerMove : MonoBehaviour {
 
 	private const float shadowProjectorY = 2;	//Brob Shadow Projectorのキャラクタからの高さ
 	//接地判定用
-	private const float groundLayY = 0.03f;					//下向きに飛ばすレイの距離
+	private const float groundLayY = 0.04f;					//下向きに飛ばすレイの距離
 	private static readonly Vector3 groundLayOffset = new Vector3(0, 0.2f, 0);	//transform.Positionに加算することでレイの原点を決定する
 	private const float groundLayR = 1.0f;							//レイの半径
-	private const int limitGround = 5;	//ジャンプしてからlimitGroundフレームは着地判定を行わない	
+	private const int limitGround = 60;	//ジャンプしてからlimitGroundフレームは着地判定を行わない	
 	//段差用
-	private const float stepLayZ = 0.8f;	//前向きに飛ばすレイの距離の基本値
-	private const float speedFactorZ = 12.0f;	//速度に対する係数　//距離はstepLayZ + (speed * speedFactor);
+	private const float stepLayZ = 0.4f;	//前向きに飛ばすレイの距離の基本値
+	private const float speedFactorZ = 16.0f;	//速度に対する係数　//距離はstepLayZ + (speed * speedFactor);
 	private const float stepLayR = 0.8f;
 	private static readonly Vector3 stepLayOffset = new Vector3(0,1.1f,0);
-	private static readonly Vector3 stepPower = new Vector3(0, 30, -30);	//段差にあたったときにかかる、上向き兼後ろ向きの力
+	private static readonly Vector3 stepPower = new Vector3(0, 20, -30);	//段差にあたったときにかかる、上向き兼後ろ向きの力
 	//落下判定用
 	private const float dropedLine = -10.0f;
 	//移動範囲制限
 	private static readonly ValueRange moveLimitZ = new ValueRange(1,Chunk.SIZE_Z);
-
 
 	#endregion
 
@@ -33,12 +32,23 @@ public class PlayerMove : MonoBehaviour {
 	//スクロール速度の変更イベント
 	public event PlayerValueChangeHandler ScrollSpeedChanged;
 
+	//キャラクターが到達したレベルが変更された
+	public event PlayerValueChangeHandler GroundedLevelChanged;
+
 	private GameObject characterObj;	//キャラクター
 
 	//キャラクターが接地ごとにジャンプ可能な回数
 	[SerializeField]
 	private int maxJumpCapacity = 1;
 	
+	//最後にプレイヤーが接地したレベル
+	private uint lastGroundedLevel = 0;
+	public uint LastGroundedLevel {
+		get {
+			return this.lastGroundedLevel;
+		}
+	}
+
 	//最終接地状態からのジャンプ可能数
 	private int jumpCapacity = 1;
 	//最後にジャンプ入力した時のフレーム数(接地判定が可能になるまでの待ち時間をカウントする)
@@ -61,6 +71,10 @@ public class PlayerMove : MonoBehaviour {
 			}
 		}
 	}
+
+	[SerializeField]
+	private Vector3 startPosition;
+
 
 	[SerializeField]
 	private float footwork = 0.0f;	//左右移動の速度
@@ -97,23 +111,14 @@ public class PlayerMove : MonoBehaviour {
 	private PlayerInput playerInput = null;
 	
 	void Awake(){
-		//unity全般の設定
-		//速度最適化
-		QualitySettings.vSyncCount = 0;
-		Application.targetFrameRate = 60;
-		
 
-		//キャラクターを取得
-		this.characterObj = Utility.GetChildFromResource(this.gameObject,this.CharacterName);	//キャラクターを設定 Playerの子にする
-		
+		this.ResetPlayer();
+
 		//Blob Shadow Projectorを得る
 		GameObject shadow = Utility.GetChildFromResource(this.characterObj, "Blob Shadow Projector");
 		shadow.transform.localPosition = new Vector3(0, PlayerMove.shadowProjectorY,0);	//何か基準となる値はないか？？
 		shadow.transform.rotation = Quaternion.Euler(90, 0, 0);
  
-		
-			this.characterAnimator = this.characterObj.GetComponent<Animator>();	//キャラクターに設定されているアニメーターを取得
-
 		//武器を取得
 		Utility.GetChildFromResource(this.gameObject,this.WeaponName);
 	}
@@ -170,10 +175,7 @@ public class PlayerMove : MonoBehaviour {
 
 	}
 
-	//武器をセットする
-	private void setWeapon(string name){
-		//未実装
-	}
+
 
 
 	#region "動作メソッド"
@@ -218,6 +220,41 @@ public class PlayerMove : MonoBehaviour {
 		Application.LoadLevel(Application.loadedLevelName);
 	}
 
+	//武器をセットまたは交換する
+	private void setWeapon(string name) {
+		//未実装
+	}
+	
+	//キャラクターをセットもしくは交換する
+	private void setCharacter(string name) {
+		if (this.characterObj != null) {
+			GameObject.Destroy(this.characterObj);
+		}
+		this.characterObj = Utility.GetChildFromResource(this.gameObject, this.CharacterName);	//キャラクターを設定 Playerの子にする
+		this.characterObj.transform.position = this.transform.position;
+	
+		//TODO キャラクターステータスをプレイヤーにコピー
+	}
+
+
+	//現在のキャラクターでPlayerをリセットする
+	public void ResetPlayer() {
+		this.transform.position = this.startPosition;
+		this.setCharacter(this.characterName);
+
+		//アニメーター
+		this.characterAnimator = this.characterObj.GetComponent<Animator>();
+
+		//TODO お金や取得アイテムの情報をデータファイルから再設定する
+
+	}
+
+	//指定のキャラクターでPlayerをリセットする
+	public void ResetPlayer(string characterName) {
+		this.characterName = characterName;
+		this.ResetPlayer();
+	}
+
 	#endregion
 
 
@@ -248,13 +285,34 @@ public class PlayerMove : MonoBehaviour {
 		RaycastHit hit;
 		Transform transform = this.characterObj.transform;
 		Vector3 layOrigin = transform.position + PlayerMove.groundLayOffset;
-		return Physics.SphereCast (layOrigin,PlayerMove.groundLayR, Vector3.down, out hit, rayDepth,mask); 
+
+		bool grounded = Physics.SphereCast (layOrigin,PlayerMove.groundLayR, Vector3.down, out hit, rayDepth,mask);
+
+		//衝突相手(ground)からチャンクを得る
+		if (grounded) {
+			Chunk chunk = hit.transform.gameObject.GetComponent<Chunk>();
+			if (chunk != null) {
+
+				//キャラクタが新規レベルへ到達した場合イベント発行
+				bool levelUpdate = this.lastGroundedLevel != chunk.LevelNumber;
+				this.lastGroundedLevel = chunk.LevelNumber;
+				if (levelUpdate) {
+					this.GroundedLevelChanged(this);
+				}
+			}
+		}
+		return grounded;
 	}
 
 
 
 	//段差につまづいているか
 	private bool isStep() {
+		//isGroundedを前提とする
+		if (!this.isGrounded()) {
+			return false;
+		}
+
 		int mask = 1 << LayerMask.NameToLayer("Ground"); // Groundレイヤーにのみを対象
 		
 		RaycastHit hit;
@@ -290,5 +348,4 @@ public class PlayerMove : MonoBehaviour {
 		this.characterObj.transform.position = position;
 	}
 
-
-}
+}	//end of class
