@@ -123,7 +123,6 @@ public class LevelManager : MonoBehaviour {
 
 	void Start() {
 		this.ResetLevel();
-	
 	}
 
 
@@ -238,7 +237,7 @@ public class LevelManager : MonoBehaviour {
 			GameObject.Destroy(this.currentLevel.gameObject);
 		}
 		//レベルを再構築
-		this.currentLevel = Utility.GetChildFromResource(this.gameObject, this.levels[this.levelNumber]).GetComponent<Level>();
+		this.currentLevel = Utility.GetChildFromResource(this.gameObject, this.levels[this.levelNumber%this.levels.Length]).GetComponent<Level>();
 
 		//レベルを初期化
 		this.currentLevel.Reset(levelNumber);

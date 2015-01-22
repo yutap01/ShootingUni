@@ -4,7 +4,8 @@ using System.Collections.Generic;
 
 public static class Utility{
 
-	private const string playerName ="Player";	//プレイヤーオブジェクトのTag名 かつ オブジェクト名
+	private const string playerName ="Player";	//プレイヤーゲームオブジェクトのTag名 かつ オブジェクト名
+	private const string masterName = "Master";	//マスターゲームオブジェクトのTag名かつオブジェクト名
 
 	//指定名のプレハブをリソースから取得する(インスタンス化はしない)
 	public static GameObject GetPrefabFromResource(string prefabName){
@@ -56,6 +57,24 @@ public static class Utility{
 		return Utility.GetGameObject(Utility.playerName, Utility.playerName);
 	}
 
+	//プレイヤー制御コンポーネントを取得する
+	public static PlayerMove GetPlayerMoveComponent() {
+		GameObject playerObject = Utility.GetPlayerObject();
+		return Utility.GetSafeComponent<PlayerMove>(playerObject);
+	}
+
+	//Masterゲームオブジェクトを通知する
+	public static GameObject GetMasterObject() {
+		return Utility.GetGameObject(Utility.masterName, Utility.masterName);
+	}
+
+	//マスター制御コンポーネントを取得する
+	public static MasterMove GetMasterMoveComponent() {
+		GameObject masterObject = Utility.GetMasterObject();
+		return Utility.GetSafeComponent<MasterMove>(masterObject);
+	}
+
+
 	//指定ゲームオブジェクトの子ゲームオブジェクトのうち、タグが指定名のものを通知する
 	public static List<GameObject> GetChildObjectsByTag(GameObject parent, string tagName) {
 
@@ -88,4 +107,12 @@ public static class Utility{
 		return (collider.gameObject.tag == tagName);
 	}
 
+
+	//ランダムに色を作る(Aは1固定)
+	public static Color RandomColorRGB() {
+		float r = Random.Range(0.0f, 1.0f);
+		float g = Random.Range(0.0f, 1.0f);
+		float b = Random.Range(0.0f, 1.0f);
+		return new Color(r, g, b);
+	}
 } // end of class

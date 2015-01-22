@@ -66,15 +66,33 @@ public class MasterMove : MonoBehaviour {
 
 
 	//リセット処理を行う
-	//外部から呼び出される可能性を考慮してpublicとしている
-	//自己判定もしているので、もしかしたらprivateで良いかもしれない
+	//外部から呼び出されるためpublicとしている
 	public void Reset() {
 
 		this.resetCommon();
 
+		//フォグ
+		Color fogColor = Utility.RandomColorRGB();
+		RenderSettings.fogColor = fogColor;
+		RenderSettings.fog = true;
+
+		//環境光
+		Color ambientColor = Utility.RandomColorRGB();
+		RenderSettings.ambientLight = ambientColor;
+
+		//メインカメラ
+		Color background = Color.black; //Utility.RandomColorRGB();
+		//Camera.main.backgroundColor = background;
+
+		//色をコンソール出力
+		Debug.Log("Color : " + fogColor.r + "," + fogColor.g + "," + fogColor.b +
+			"," + ambientColor.r + "," + ambientColor.g + "," + ambientColor.b +
+			"," + background.r  + "," + background.g + "," + background.b);
+
 		//管理者にリセットを通知(順序を維持すること)
 		this.playerMove.ResetPlayer();
 		this.levelManager.ResetLevel(this.playerMove.LastGroundedLevel);
+
 	}
 
 	//キャラクタのみリセットを行う

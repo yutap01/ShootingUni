@@ -9,7 +9,7 @@ public abstract class Level:MonoBehaviour{
 	#region "定数"
 
 	//レベル当たりの距離
-	public const int FullDistance = 3200;	//単位:メートル
+	public const int FullDistance = 160;	//単位:メートル
 
 	//レベル当たりのチャンク数
 	public const int ChunkCountByCycle = Level.FullDistance / Chunk.SIZE_Z;	//小数点以下は無視でよい

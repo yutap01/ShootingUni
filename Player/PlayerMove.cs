@@ -217,7 +217,12 @@ public class PlayerMove : MonoBehaviour {
 
 	//落下時
 	private void droppedProc(){
-		Application.LoadLevel(Application.loadedLevelName);
+		//Application.LoadLevel(Application.loadedLevelName);
+		
+		//落下時につき処理効率は無視
+		MasterMove masterMove = Utility.GetMasterMoveComponent();
+		masterMove.Reset();
+		
 	}
 
 	//武器をセットまたは交換する
