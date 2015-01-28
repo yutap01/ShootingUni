@@ -3,28 +3,54 @@ using System.Collections;
 using System.Collections.Generic;
 using LitJson;	//Jsonライブラリ
 
-public class block64 : MonoBehaviour {
 
-	//[SerializeField]
-	public Texture baseTexture = null;
+//TODO ライトマップを生成
+/// <summary>
+/// Cubeの表面にアトラスから抽出したテクスチャを貼り付けたオブジェクト(個体ブロック）クラス
+/// </summary>
+public class TextureCubeGenerator : MonoBehaviour {
 
-	//[SerializeField]
-	public TextAsset jsonText = null;
-
+	/// <summary>
+	/// 各ブロックテクスチャを保持するアトラス
+	/// </summary>
 	[SerializeField]
-	//各種ブロックデータまでのパス(rootを含めて記載する 最後のスラッシュは不要)
+	private Texture baseTexture = null;
+
+
+	/// <summary>
+	/// アトラスの配置情報を持つjSon形式テキスト
+	/// </summary>
+	[SerializeField]
+	private TextAsset jsonText = null;
+
+
+	/// <summary>
+	/// ブロックデータまでのパス(root/から記載する。最後のスラッシュは不要)
+	/// </summary>
+	[SerializeField]
 	private string blockPath = null;
 
-	//デコードデータ
+	/// <summary>
+	/// デコードしたjSonデータを格納
+	/// </summary>
 	private JsonData jsonData = null;
 
-	//テクスチャ全体のサイズ
+	/// <summary>
+	/// テクスチャ全体のサイズ
+	/// </summary>
 	private Vector2 baseTextureSize = new Vector2(0,0);
 
-	//箱に割り当てたいシェーダー
+
+	/// <summary>
+	/// 等ゲームオブジェクトに適用するシェーダー
+	/// </summary>
 	private Shader shader = null;
 
-	//uv列の頂点インデックス
+
+	
+	/// <summary>
+	/// 各面の何番目の頂点がどの位置に相当するかを示す
+	/// </summary>
 	public enum uv_enum{
 		uv_bottomLeft,
 		uv_bottomRight,
@@ -32,7 +58,10 @@ public class block64 : MonoBehaviour {
 		uv_topRight
 	};
 
-	//cubeの各面
+
+	/// <summary>
+	/// Cubeの各面を示す
+	/// </summary>
 	private enum plane_enum{
 		plane_front,
 		plane_back,
@@ -42,7 +71,11 @@ public class block64 : MonoBehaviour {
 		plane_bottom
 	};
 
-	//頂点座標対応
+
+	/// <summary>
+	/// メッシュに適用するuv列の要素番号と頂点の対応
+	/// 値がuv列のインデックス。面の並びと頂点の並びは各列挙体に従う
+	/// </summary>
 	private int[,]  cubeVertexes = new int[,]{
 		{7,6,11,10},		//正面
 		{0,1,2,3},			//背面
@@ -52,7 +85,12 @@ public class block64 : MonoBehaviour {
 		{12,14,15,13}	//下
 	};
 
+
 	//各面が検索する画像ファイル名(優先度順)
+	/// <summary>
+	/// 各面のテクスチャファイル名
+	/// 先頭要素の文字列を名前として順に検索し、見つからなければひとつ後方の要素の文字列を使って検索する
+	/// </summary>
 	private string[][] serchFiles = new string[][]{
 		new string[]{"front.png","side.png","other.png"},
 		new string[]{"back.png","side.png","other.png"},
@@ -62,10 +100,16 @@ public class block64 : MonoBehaviour {
 		new string[]{"bottom.png","up_and_low.png","other.png"}
 	};
 
-	//各頂点のuvをキャッシュしておく辞書
+
+	/// <summary>
+	/// ブロックの名前から取得したuv列は辞書としてキャッシュされる
+	/// </summary>
 	private Dictionary<string,Vector2[]> uvDictionary = null;
 	
-	//データファイルの読み込みと初期化
+
+	/// <summary>
+	/// データファイルの読み込みと初期化
+	/// </summary>
 	void Awake () {
 		if(jsonText == null){
 			Debug.LogError(this.gameObject.name + ">block.cs jsonファイル(.txt)が指定されていない");
@@ -94,6 +138,10 @@ public class block64 : MonoBehaviour {
 	}
 
 
+	/// <summary>
+	/// 独自の初期化を実装する領域
+	/// 現在はテストとして各種のブロックを生成している
+	/// </summary>
 	public void Start(){
 		float start = Time.realtimeSinceStartup;
 		float blockSize = 1.0f;
@@ -117,7 +165,13 @@ public class block64 : MonoBehaviour {
 		Debug.Log("elapsed time : " + elapsed + "sec.");
 	}
 
-	//指定位置に、指定スケールで、指定名のブロックを生成する
+	/// <summary>
+	/// ブロックを生成する
+	/// </summary>
+	/// <param name="position">生成位置(ワールド)</param>
+	/// <param name="scale">生成サイズ</param>
+	/// <param name="blockName">ブロック名</param>
+	/// <returns>テクスチャとシェーダを適用したCubeゲームオブジェクト</returns>
 	private GameObject createBlock(Vector3 position,Vector3 scale, string blockName){
 		GameObject cube = this.createCube(position,scale);
 		cube.renderer.material.mainTexture = this.baseTexture;
@@ -160,11 +214,12 @@ public class block64 : MonoBehaviour {
 	}
 
 
-	private float lastCreatedTime = 0.0f;
 
-	//サイクル処理
+	//private float lastCreatedTime = 0.0f;
+	/// <summary>
+	/// ジェネレータ独自のサイクル処理を実装する領域
+	/// </summary>
 	public void Update(){
-
 
 		//ブロック生成テスト
 		/*
@@ -176,8 +231,13 @@ public class block64 : MonoBehaviour {
 	}
 
 
-
-	//指定パスが１枚のスプライトフレームであるとみなし、uv座標(4頂点分)を生成
+	/// <summary>
+	/// ブロックパスから1面分(4頂点)のuv列を取得する
+	/// </summary>
+	/// <param name="blockName">ブロック名</param>
+	/// <param name="serchFiles">検索するスプライト名が優先度順に並んだもの</param>
+	/// <param name="blockPath">ブロックパス</param>
+	/// <returns>4頂点分のuv列</returns>
 	private Vector2[] getUvPlane(string blockName,string[] serchFiles,string blockPath){
 
 		//ブロックまでのパスに対応するJsonDataを取得する
@@ -221,7 +281,13 @@ public class block64 : MonoBehaviour {
 		};
 	}
 
-	//指定パスのjsonObjectを取得する
+
+
+	/// <summary>
+	/// 指定ブロックパスのデータを格納するJsonDataを取得する
+	/// </summary>
+	/// <param name="spriteFramePath"></param>
+	/// <returns>指定のブロックに関するデータを格納したJsonData</returns>
 	private JsonData getJsonDataFromPath(string spriteFramePath){
 
 		//Debug.Log ("path:" + spriteFramePath);
@@ -241,8 +307,12 @@ public class block64 : MonoBehaviour {
 	}
 
 
-	//指定位置に指定スケールでprimitiveを生成する
-	//position はworld尺
+	/// <summary>
+	/// Cubeプリミティブを生成
+	/// </summary>
+	/// <param name="position">ワールド位置</param>
+	/// <param name="scale">サイズ</param>
+	/// <returns></returns>
 	private GameObject createCube(Vector3 position,Vector3 scale){
 		GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
 		cube.transform.position = position;
@@ -251,7 +321,13 @@ public class block64 : MonoBehaviour {
 		return cube;
 	}
 
-	//指定ブロック名のuv列を返す
+
+	/// <summary>
+	/// 指定ブロックのuv列を取得する
+	/// キャッシュされている場合はキャッシュされているものを返す
+	/// </summary>
+	/// <param name="blockName">ブロック名</param>
+	/// <returns>指定ブロックのuv列(24頂点)</returns>
 	private Vector2[] getUvList(string blockName){
 
 		//各種ブロックまでのパスは root/ブロック名 で表される
@@ -296,7 +372,13 @@ public class block64 : MonoBehaviour {
 		return uv;
 	}
 
-	//指定JsonData直下に指定のキーがあるか否かを判定
+
+	/// <summary>
+	/// 指定JsonDataの配下(直下)に指定のキーが存在するか否かを判定
+	/// </summary>
+	/// <param name="data">JsonData</param>
+	/// <param name="key">キー</param>
+	/// <returns>有無</returns>
 	static public  bool JsonDataContainsKey(JsonData data,string key){
 		try{
 			IDictionary dic = data as IDictionary;
@@ -307,92 +389,3 @@ public class block64 : MonoBehaviour {
 	}
 
 }	//end of class
-	/*
-		Vector2[] vectors = new Vector2[System.Enum.GetNames(typeof()).Length]
-
-		//主要キー名
-		const string f1 = "frames";
-		//f2はファイル名
-		const string f3 = "frame";
-
-		ret.x = (int)this.jsonData[f1][frameName][f3]["x"];
-		ret.y = (int)this.jsonData[f1][frameName][f3]["y"];
-
-
-		ret.width = (int)this.jsonData[f1][frameName][f3]["w"];
-		ret.height = (int)this.jsonData[f1][frameName][f3]["h"];
-
-		//unityの仕様なのか・・テクスチャの座標が上下逆
-		ret.y = this.baseTextureSize.y - ret.y - ret.height;
-
-		return ret;
-	}
-*/	
-
-	/*
-	//テクスチャの指定Rectをuvの列(左上,右上,左下,右下)に変換する(4点 正方形一つ分)
-	private Vector2[] getUvPlane(Rect rect){
-		//テクスチャのサイズは2のべき乗ベースであることを前提としている
-		//一般的なテクスチャとy軸が逆であることに注意(下が0,正が上方向)
-
-		Vector2[] uvList = new Vector2[4];
-
-		//左下
-		uvList[(int)uv_enum.uv_bottomLeft] = new Vector2();
-		uvList[(int)uv_enum.uv_bottomLeft].x = (float)rect.x / this.baseTextureSize.x;
-		uvList[(int)uv_enum.uv_bottomLeft].y = (float)rect.y / this.baseTextureSize.y;
-
-		//右下
-		uvList[(int)uv_enum.uv_bottomRight] = new Vector2();
-		uvList[(int)uv_enum.uv_bottomRight].x = (float)(rect.x + rect.width) / this.baseTextureSize.x;
-		uvList[(int)uv_enum.uv_bottomRight].y = (float)rect.y / this.baseTextureSize.y;
-
-		//左上
-		uvList[(int)uv_enum.uv_topLeft] = new Vector2();
-		uvList[(int)uv_enum.uv_topLeft].x = (float)rect.x / this.baseTextureSize.x;
-		uvList[(int)uv_enum.uv_topLeft].y = (float)(rect.y + rect.height) / this.baseTextureSize.y;
-
-		//右上
-		uvList[(int)uv_enum.uv_topRight] = new Vector2();
-		uvList[(int)uv_enum.uv_topRight].x = (float)(rect.x + rect.width) / this.baseTextureSize.x;
-		uvList[(int)uv_enum.uv_topRight].y = (float)(rect.y + rect.height)/ this.baseTextureSize.y;
-
-		return uvList;
-	}
-	*/
-
-
-
-/*
-		Vector2[] planeUv = this.getUvPlane(spriteFramePath);
-
-		//テスト
-
-		foreach(Vector2 vertex in planeUv){
-			Debug.Log("x: " + vertex.x + " y:" + vertex.y);
-		}
-
-
-		//各平面の拡張点
-		plane_enum[] planeEnumValues = System.Enum.GetValues(typeof(plane_enum));
-		uv_enum[] uvEnumValues = System.Enum.GetValues(typeof(uv_enum));
-		Vector2[] uv = new Vector2[planeEnumValues.Length * uvEnumValues.Length];	//6面×4点=24頂点
-		//各頂点をuv列へ変換
-		foreach(plane_enum plane in planeEnumValues){
-			foreach(uv_enum vertex_pos in uvEnumValues){
-				int planeIndex = (int)plane;
-				int vertexIndex = (int)vertex_pos;
-				uv[cubeVertexes[planeIndex,vertexIndex]] = new Vector2(
-						planeUv[vertexIndex].x,
-						planeUv[vertexIndex].y
-					);
-			}
-		}
-
-		//作成したuv列をキャッシュする
-		this.uvDictionary[spriteFramePath] = uv;
-
-		return uv;
-	}
-}
-*/

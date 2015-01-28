@@ -1,30 +1,67 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+/// <summary>
+/// ゲーム全体の制御クラス
+/// 但し入力の監視はMasterInputが行う
+/// </summary>
 public class MasterMove : MonoBehaviour {
 
 	#region "定数"
-		private const string playerName = "Player";	//Playerゲームオブジェクト名
-		private const string levelName = "Level";	//Levelゲームオブジェクト名
+	/// <summary>
+	/// Playerゲームオブジェクト名
+	/// </summary>
+	private const string playerName = "Player";
+	
+	/// <summary>
+	/// Levelゲームオブジェクト名
+	/// </summary>
+	private const string levelName = "Level";
 	#endregion
 
 
 
+	/// <summary>
+	/// 目標フレームレート
+	/// TODO:フレームレートに対する倍率を考慮すべき
+	/// </summary>
 	[SerializeField]
 	private int targetFrameRate = 0;
+	
+	/// <summary>
+	/// 垂直リフレッシュレート
+	/// </summary>
 	[SerializeField]
-	private int vSyncCount = 0;
+	private int vSyncCount = 0;	//0は非同期
 
 
-	//各種の管理者	
+	//各種の管理者
+	/// <summary>
+	/// プレイヤー管理者
+	/// </summary>
 	private PlayerMove playerMove = null;
+
+	/// <summary>
+	/// レベル(舞台)管理者
+	/// </summary>
 	private LevelManager levelManager = null;
-	//ゲーム全体に対する入力
+
+	
+	/// <summary>
+	/// ゲーム全体に対する入力
+	/// TODO:今は直接PlayerInputが入力を監視しているが
+	/// TODO:上位にとって不要な入力を下位にたらい回しする機構があっても良いのではないだろうか？？
+	/// </summary>
 	[SerializeField]
 	private MasterInput masterInput = null;
 
 
-
+	/// <summary>
+	/// 管理者の初期化
+	/// 但し各管理者のファーストリセットはそれぞれの初期化メソッドで行っている
+	/// TODO:上記の方法で管理しているため、MasterMoveのResetが呼べなくなっている
+	/// TODO:それぞれの管理者のファーストリセットをAwake時やStart時には呼ばず、常にMasterMoveのResetから呼ばれるように修正すべきだ
+	/// </summary>
 	void Awake() {
 
 		//管理者を取得
@@ -41,10 +78,12 @@ public class MasterMove : MonoBehaviour {
 
 	}
 
-	void Start () {
-	
-	}
-	
+
+	/// <summary>
+	/// イベントの監視
+	/// TODO:イベントループはMasterInputに持たせるべきではないだろうか？
+	/// TODO:少なくとも入力イベントの監視を行う限りにおいては。
+	/// </summary>
 	void Update () {
 
 		//リセット
@@ -57,6 +96,10 @@ public class MasterMove : MonoBehaviour {
 	#region "動作メソッド"
 
 	//リセット共通処理
+	/// <summary>
+	/// リセット処理
+	/// TODO：イベントハンドラから呼ばれるように変更すべきではないだろうか？
+	/// </summary>
 	private void resetCommon() {
 		//unity全般の設定
 		//速度最適化
@@ -66,7 +109,11 @@ public class MasterMove : MonoBehaviour {
 
 
 	//リセット処理を行う
-	//外部から呼び出されるためpublicとしている
+	//外部から呼び出される可能性を考慮してpublicとしている
+
+	/// <summary>
+	/// リセット処理
+	/// </summary>
 	public void Reset() {
 
 		this.resetCommon();
@@ -95,13 +142,15 @@ public class MasterMove : MonoBehaviour {
 
 	}
 
-	//キャラクタのみリセットを行う
+
+	//キャラクタ単独のリセットを行う
 	public void resetCharacter(string characterName) {
 		this.resetCommon();
 		this.playerMove.ResetPlayer(characterName);
 	}
 
-	//レベルのみリセットを行う
+	
+	//レベル単独のリセットを行う
 	public void resetLevel(uint levelNumber) {
 		this.resetCommon();
 		this.levelManager.ResetLevel(levelNumber);
@@ -109,30 +158,49 @@ public class MasterMove : MonoBehaviour {
 
 	#endregion
 
+
 	#region "判定メソッド"
 
-	//(有効な)リセット入力されたか
+	/// <summary>
+	/// リセット入力に対する有効性の判定
+	/// </summary>
+	/// <returns></returns>
 	private bool isReset() {
 		return this.masterInput.ResetInput();
 	}
 
-	//(有効な)外部からキャラクタの設定もしくはが変更されたか
+
+	/// <summary>
+	/// キャラクタの変更（または新規設定）に対する有効性の判定
+	/// </summary>
+	/// <returns></returns>
 	private bool isSetCharacter() {
 		return this.masterInput.SetCharacterInput();
 	}
 
-	//(有効な)外部からレベル変更されたか
-	//通常にステージを攻略した際のレベル変更は除く
+	/// <summary>
+	/// レベル変更指示に対する有効性の判定
+	/// </summary>
+	/// <returns></returns>
 	private bool isSetLevel() {
 		return this.masterInput.SetLevelInput();
 	}
 
-	//[イベント]プレイヤー(キャラクター)が新規レベルに到達した
+
+	/// <summary>
+	/// イベントハンドラ
+	/// プレイヤーが新しいレベル(舞台)に到達した
+	/// 単にレベルが切り替わったことを取得
+	/// 最高到達点とは無関係
+	/// </summary>
+	/// <param name="playerMove"></param>
 	private void groundedLevelChanged(PlayerMove playerMove) {
 
-		//TODO BGMの更新
+		//TODO BGMの更新（但しLevel.Resetで実装する方が順当と思われる）
 		
 		//levelManagerの天気を更新
+		//TODO:直接メソッドを呼ぶのではなく、プレイヤーが現在存在するレベルが変更されたことをただlevelマネージャに伝えるべきだ
+		//TODO:MasterMoveを経由する必要があるだろうか？？直接levelManagerがイベントをハンドルしても良いのではなかろうか？
 		this.levelManager.InitWeather();
 	}
 

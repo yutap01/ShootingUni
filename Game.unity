@@ -999,15 +999,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51a9ba36ed4222449ba62eb17b58e366, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxJumpCapacity: 1
+  maxJumpCapacity: 3
   scrollSpeed: .0500000007
-  startPosition: {x: 0, y: 10, z: 0}
   footwork: 1
-  jumpPower: 350
+  jumpPower: 400
   gravity: 20
   endureGravity: 0
-  weaponName: PlayerWeapon
   characterName: BoxUnityChan
+  weaponName: PlayerWeapon
+  startPosition: {x: 0, y: 10, z: 0}
   playerInput: {fileID: 1975317683}
 --- !u!4 &1352666243
 Transform:
@@ -1322,7 +1322,6 @@ GameObject:
   - 124: {fileID: 1927560740}
   - 81: {fileID: 1927560739}
   - 114: {fileID: 1927560738}
-  - 45: {fileID: 1927560743}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1416,14 +1415,6 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: .0219999999
---- !u!45 &1927560743
-Skybox:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1927560736}
-  m_Enabled: 1
-  m_CustomSkybox: {fileID: 2100000, guid: d07d2172e76d3fa429e80a14d2ae3616, type: 2}
 --- !u!1 &1975317681
 GameObject:
   m_ObjectHideFlags: 0

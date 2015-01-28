@@ -2,16 +2,24 @@
 using System.Collections;
 
 
-//生成すべきブロックの高さを管理するクラス
-//またChunkGeneratorにサイクルの終了を伝えるクラス
+/// <summary>
+/// 舞台クラス
+/// </summary>
 public abstract class Level:MonoBehaviour{
 
 	#region "定数"
 
-	//レベル当たりの距離
+	/// <summary>
+	/// レベル当たりの距離
+	/// TODO:レベルに応じてある程度距離の差があっても良いかもしれない
+	/// </summary>
 	public const int FullDistance = 160;	//単位:メートル
 
-	//レベル当たりのチャンク数
+	/// <summary>
+	/// レベルあたりのチャンク数
+	/// 割り切れない場合の小数点以下を無視しているため精度が低い
+	/// TODO：チャンク数を基準に全体距離を規定する方が良い
+	/// </summary>
 	public const int ChunkCountByCycle = Level.FullDistance / Chunk.SIZE_Z;	//小数点以下は無視でよい
 
 	#endregion
@@ -20,6 +28,10 @@ public abstract class Level:MonoBehaviour{
 	#region "天気"
 
 	//それぞれが生じる率(0-1)
+	/// <summary>
+	/// 雨がふる確率
+	/// 0 <= n <= 1
+	/// </summary>
 	[SerializeField]
 	protected float rainRate = 0;
 	public float RainRate {
@@ -27,6 +39,11 @@ public abstract class Level:MonoBehaviour{
 			return this.rainRate;
 		}
 	}
+
+	/// <summary>
+	/// 雪が降る確率
+	/// 0 <= n <= 1
+	/// </summary>
 	[SerializeField]
 	protected float snowRate = 0;
 	public float SnowRate {
@@ -34,6 +51,11 @@ public abstract class Level:MonoBehaviour{
 			return this.snowRate;
 		}
 	}
+
+	/// <summary>
+	/// 雷雨が降る確率
+	/// 0 <= n <= 1
+	/// </summary>
 	[SerializeField]
 	protected float thunderRate = 0;
 	public float ThunderRate {
@@ -42,7 +64,9 @@ public abstract class Level:MonoBehaviour{
 		}
 	}
 	
-	//天気の明るさ
+	/// <summary>
+	/// 日差しの明るさ
+	/// </summary>
 	[SerializeField]
 	protected int brightness = 0;
 	public int Brightness {
@@ -54,7 +78,10 @@ public abstract class Level:MonoBehaviour{
 	#endregion
 
 
-	//マップの定義情報
+	/// <summary>
+	/// マップの情報（定義、構成)
+	/// </summary>
+	/// TODO クラス名とプロパティ名が同じなのは抵抗を感じる
 	static protected Map map;
 	public static Map Map {
 		set {
@@ -65,7 +92,9 @@ public abstract class Level:MonoBehaviour{
 		}
 	}
 
-	//現レベルのメインブロック
+	/// <summary>
+	/// 現レベルにおいて基本となるブロック
+	/// </summary>
 	[SerializeField]
 	protected string blockName;
 	public string BlockName{
@@ -75,9 +104,9 @@ public abstract class Level:MonoBehaviour{
 	}
 
 
-
-
-	//現レベルのレベル番号
+	/// <summary>
+	/// 現レベルのレベル番号
+	/// </summary>
 	protected uint levelNumber;
 	public uint LevelNumber {
 		get {
@@ -86,7 +115,10 @@ public abstract class Level:MonoBehaviour{
 	}
 
 	
-	//レベル状態をリセットする
+	/// <summary>
+	/// レベル状態をリセットする
+	/// </summary>
+	/// <param name="levelNumber">レベル番号を指定</param>
 	public virtual void Reset(uint levelNumber) {
 		this.levelNumber = levelNumber;
 		this.chunkCount = 0;
@@ -94,8 +126,10 @@ public abstract class Level:MonoBehaviour{
 	}
 
 
-	//現レベルでの移動距離
-	//サイクル距離や全長とは、最後に生成したチャンクの最大Z座標(一番奥)を示している
+	/// <summary>
+	/// 現レベルに到達してからプレイヤーが（スクロールによって）進んだ距離
+	/// 距離の基準位置は、最後に生成したチャンクの一番奥(Zが最大の)位置
+	/// </summary>
 	public uint CurrentDistance {
 		get {
 			return (uint)(Chunk.SIZE_Z * this.chunkCount);
@@ -103,7 +137,10 @@ public abstract class Level:MonoBehaviour{
 	}
 
 
-	//生成したチャンクの数
+	/// <summary>
+	/// 現レベルに到達してから、生成されたチャンクの数
+	/// </summary> 
+	//TODO 言語仕様の確認 内部変数を消した場合virtualはいるのか？？
 	protected int chunkCount = 0;
 	public int ChunkCount {
 		get {
@@ -115,9 +152,12 @@ public abstract class Level:MonoBehaviour{
 	}
 
 
-	//チャンク番号(サイクル当たりの最大チャンク番号 から見た 現在のチャンク番号 の割合）と高さの関係	//ブロックの高さの分布(それぞれのHeightRangeは等間隔で出現)
-	//minは必ず1以上でなければならない
-	//maxは必ず31以下でなければならない
+	///<summary>
+	///チャンク位置(サイクル当たりの最大チャンク番号 から見た 現在のチャンク番号 の割合）と高さの関係
+	///ブロックの高さの分布(それぞれのHeightRangeは等間隔で出現)
+	///minは必ず1以上でなければならない
+	///maxは必ず31以下でなければならない
+	/// </summary>
 	private static ValueRange[] heightMap = new ValueRange[]{
 		new ValueRange(1,2),
  		new ValueRange(1,4),
@@ -130,38 +170,68 @@ public abstract class Level:MonoBehaviour{
 	};
 
 
-	//チャンク番号からチャンクの全チャンクに対する割合に変換する
-	//刻み数(stride)を指定可能にする
-	//刻み数とは
-	//たとえば刻み数を10とした場合
-	//0-9 0
-	//10-19 1
-	//...
-	//90-99 9 の10種に刻まれる
-	//各幅の密度はいずれも等しい
-	//どの刻み位置に入るかを通知する
+	///<summary>
+	///チャンク番号からチャンクの全チャンクに対する割合に変換する
+	///刻み数(stride)を指定可能にする
+	///刻み数とは
+	///たとえば刻み数を10とした場合
+	///0-9 0
+	///10-19 1
+	///...
+	///90-99 9 の10種に刻まれる
+	///各幅の密度はいずれも等しい
+	///どの刻み位置に入るかを通知する
+	///</summary>
+	///<param name="chunkNumber">チャンク番号</param>
+	///<param name="stride">刻み幅</param>
+	///<returns>指定番号のチャンクは全体のうちどの割合に相当するか(0-1)</returns>
 	protected int getChunkRange(int chunkNumber, int stride) {
 		return stride * chunkNumber / Level.ChunkCountByCycle;
 	}
 
 
 	//段差
-	private int planeCounter = 0;	//段差無しが連続した回数
-	private const int limitPlane = 20;	//段差間の最低平面数
+	/// <summary>
+	/// 段差がない状態が何行続いたか
+	/// </summary>
+	private int planeCounter = 0;
+
+	/// <summary>
+	/// 段差間の最低平面数
+	/// 段差は、平面がlimitPlane回以上続かないと出現しない
+	/// </summary>
+	private const int limitPlane = 20;
 
 
 	//ブロック作成Y座標
-	private int generateY = 1;	//ブロックを作成するY位置
+	/// <summary>
+	/// 新たに生成するブロックのY座標
+	/// </summary>
+	private int generateY = 1;
+
+	/// <summary>
+	/// Y最大
+	/// </summary>
 	private const int MAX_Y = Chunk.SIZE_Y - 1;
+	
+	/// <summary>
+	/// Y最小
+	/// </summary>
 	private const int MIN_Y = 1;
 
 
-	//段の上がり下がり数を返す
-	//0 平面 1:1段上がる -n:n段下がる
-	//注意 min と maxで考え方に違いがある
-	//現在の高さがmaxより高ければ必ずYがmax以下になるように補正される
-	//現在の高さがminより低い場合は必ず +1 を返す
-	//一度段差が発生すれば、必ずlimitPlane回以上平面が続く
+
+	
+	/// <summary>
+	/// 現在の段からの差分を決定する
+	/// 注意 min と maxで考え方に違いがある
+	/// 現在の高さがmaxより高ければ必ずYがmax以下になるように補正される
+	/// 現在の高さがminより低い場合は必ず +1 を返す(つまり(n>1)段上がることはない)
+	/// 一度段差が発生すれば、必ずlimitPlane回以上平面が続く
+	/// </summary>
+	/// <param name="minY"></param>
+	/// <param name="maxY"></param>
+	/// <returns>0 平面 1:1段上がる -n:n段下がる</returns>
 	private int getStep(int minY, int maxY) {
 
 		//平面が規定回数以上続いていない場合
@@ -208,16 +278,22 @@ public abstract class Level:MonoBehaviour{
 
 
 
-	//チャンクの生成
-	//チャンクの作り方
-	//1:マップからブロックセットを得る
-	//2:ブロックセットから指定名のブロックを得る
-	//3:ブロックデータの初期化(対となるブロックを渡す)
-	//4:チャンクデータを作成(引数としてmap,map内のインデックスが必要だが、本プロジェクトでは無意味)
-	//5:チャンクデータ(チャンクの生データ)にブロックデータ(ブロックの配置情報)をセットする
-	//6:(ビルド済の)チャンクデータからチャンクを得る
-	//7:チャンクは自身のupdate内で(dirtyであれば)自動的にビルドされる
-	//※レベル終了時はnullを通知する
+	/// <summary>
+	///チャンクの生成
+	/// チャンクの作り方
+	/// 1:マップからブロックセットを得る
+	/// 2:ブロックセットから指定名のブロックを得る
+	/// 3:ブロックデータの初期化(対となるブロックを渡す)
+	/// 4:チャンクデータを作成(引数としてmap,map内のインデックスが必要だが、本プロジェクトでは無意味)
+	/// 5:チャンクデータ(チャンクの生データ)にブロックデータ(ブロックの配置情報)をセットする
+	/// 6:(ビルド済の)チャンクデータからチャンクを得る
+	/// 7:チャンクは自身のupdate内で(dirtyであれば)自動的にビルドされる
+	/// ※レベル終了時はnullを通知する
+	/// </summary>
+	/// <returns>
+	/// 生成されたチャンク(ゲームオブジェクト)
+	/// 別のレベルに遷移する際にはnullを通知する
+	/// </returns>
 	public Chunk NextChunk() {
 
 		//満了ならばnullを通知
@@ -272,8 +348,13 @@ public abstract class Level:MonoBehaviour{
 		return cd.GetChunkInstance(); 
 	}
 
-	//ブロックを置かない領域を作る
-	//試しにランダムで
+
+	/// <summary>
+	/// 底穴を作る
+	/// 現在は乱数で適当に決定している
+	/// TODO:完成形を考察すること
+	/// </summary>
+	/// <returns></returns>
 	private Rect2i getBlankArea() {
 			int x = Random.Range(0, Chunk.SIZE_X);
 			int y = Random.Range(0, Chunk.SIZE_Z);

@@ -1,20 +1,34 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+
+/// <summary>
+/// プレイヤーに対する入力を監視
+/// TODO:現在は直接デバイスを監視しているが、MasterInputから呼び出される形式の方が良いのではないだろうか？
+/// </summary>
 public class PlayerInput : MonoBehaviour {
 
-
+	/// <summary>
+	/// ジャイロセンサーのデフォルト位置
+	/// TODO:オイラ角で管理して良いのだろうか？？
+	/// </summary>
 	private Vector3 defaultQuatanion = new Vector3(0,0,0);
 
  
-	//現在の角度をデフォルト値とする
+	/// <summary>
+	/// 現在のジャイロ状態をデフォルトとする
+	/// ジャイロ搭載デバイスでない場合は何もしない
+	/// </summary>
 	public void SetDefaultQuatanion(){
 #if !UNITY_EDITOR && UNITY_IPHONE
 		this.defaultQuatanion = Input.gyro.gravity;
 #endif
 	}
 
-	//入力値を水平方向に対する値として通知
+
+	/// <summary>
+	/// デバイスから水平方向に対する値を取得
+	/// </summary>
 	public float Horizontal{
 		get {
 #if !UNITY_EDITOR && UNITY_IPHONE
@@ -26,7 +40,9 @@ public class PlayerInput : MonoBehaviour {
 	}
 
 
-	//入力値をを垂直方向に対する値として通知
+	/// <summary>
+	/// デバイスから垂直方向に対する値を取得
+	/// </summary>
 	public float Virtical {
 		get {
 #if !UNITY_EDITOR && UNITY_IPHONE
@@ -38,7 +54,9 @@ public class PlayerInput : MonoBehaviour {
 	}
 
 	
-	//入力値を水平方向をX(左が負 右が正) 奥手前方向をZ(手前が負 奥が正)として通知
+	/// <summary>
+	/// デバイスから 水平方向(X)と奥手間方向(Z)の値を取得
+	/// </summary>
 	public Vector3 Axis {
 		get {
 #if !UNITY_EDITOR && UNITY_IPHONE
@@ -50,7 +68,9 @@ public class PlayerInput : MonoBehaviour {
 	}
 
 
-	//ジャンプボタンを押下している最中であることを通知
+	/// <summary>
+	/// ジャンプボタンを押下し続けている状態であることを取得判定
+	/// </summary>
 	public bool JumpingInput {
 		get {
 #if !UNITY_EDITOR && UNITY_IPHONE
@@ -61,8 +81,10 @@ public class PlayerInput : MonoBehaviour {
 		}
 	}
 
-	//ジャンプアクションに相当する入力があることを通知
-	//入力した瞬間
+
+	/// <summary>
+	/// ジャンプボタンが押下された瞬間であることを取得判定
+	/// </summary>
 	public bool JumpInput {
 
 		get {
@@ -76,8 +98,10 @@ public class PlayerInput : MonoBehaviour {
 	}
 
 
-	//スクロール速度変更アクションに相当する入力があることを通知
-	//-n スクロール速度をn段階下げる, nスクロール速度をn段階上げる
+	/// <summary>
+	/// スクロール速度の変更アクションが入力されたことを取得判定
+	/// 返却値：+n:n段階加速　-n:n段階減速 
+	/// </summary>
 	public int ScrollSpeedInput {
 		get{
 			if (Input.GetButtonDown(InputName.Fire1) && !Input.GetButtonDown(InputName.Fire2)) {
@@ -92,13 +116,18 @@ public class PlayerInput : MonoBehaviour {
 
 
 	#region "回転の取得"
-	// ホームボタンを下にして縦持ちした際の
-	//縦軸をY(正:右を下方向倒す　負:左を下方向へ倒す)
-	//横軸をX(正:下を下方向へ倒す　負:上を下方向へ倒す)
-	//それぞれに直行する軸をZとする(正:時計回り、負:反時計回り)
-	//return new Vector3(this.HorizontalQuatanion, 0, this.VirticalQuatanion);
-	//回転係数
+	
+	/// <summary>
+	/// 回転係数（ジャイロ以外の入力とのバランスを取るための係数)
+	/// </summary>
 	private float rotationFactor = 2.0f;
+	
+	/// <summary>
+	/// ホームボタンを下にして縦持ちした際の
+	/// 縦軸をY(正:右を下方向倒す　負:左を下方向へ倒す)
+	/// 横軸をX(正:下を下方向へ倒す　負:上を下方向へ倒す)
+	/// それぞれに直行する軸をZとする(正:時計回り、負:反時計回り)
+	/// </summary>
 	public float RotationFactor{
 		get{
 			return this.rotationFactor;
@@ -108,7 +137,10 @@ public class PlayerInput : MonoBehaviour {
 		}
 	}
 
-	//デバイス固有の値を得る
+
+	/// <summary>
+	/// ジャイロ状態X値を係数と上限下限によりゲーム内尺度へ変換
+	/// </summary>
 	public float RotationX{
 		get{
 			float value = (Input.gyro.gravity.y - defaultQuatanion.y) * this.rotationFactor;
@@ -116,6 +148,9 @@ public class PlayerInput : MonoBehaviour {
 		}
 	}
 
+	/// <summary>
+	/// ジャイロ状態 Y値を係数と上限下限によりゲーム内尺度へ変換
+	/// </summary>
 	public float RotationY{
 		get{
 			float value = (Input.gyro.gravity.x - this.defaultQuatanion.x) * this.rotationFactor;
@@ -123,6 +158,9 @@ public class PlayerInput : MonoBehaviour {
 		}
 	}
 
+	/// <summary>
+	/// ジャイロ状態 Z値を係数と上限下限によりゲーム内尺度へ変換
+	/// </summary>
 	public float RotationZ{
 		get{
 			float value = (Input.gyro.gravity.z - this.defaultQuatanion.z) * this.rotationFactor;
